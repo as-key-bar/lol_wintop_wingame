@@ -75,4 +75,6 @@ pytest backend/tests
 
 チャンピオンカタログはData Dragonのバージョン付きデータです。パッチ更新時はプロジェクトルートから `python3 scripts/update_champion_catalog.py` を実行し、生成された差分を確認してください。
 
-チャンピオン一覧APIは `GET /api/v1/champions?q=<検索語>` です。`q` は日本語名・英語名・登録済み別名を部分一致検索します。
+チャンピオン一覧APIは `GET /api/v1/champions?q=<検索語>` です。`q` は日本語名・英語名・登録済み別名・ローマ字表記を部分一致検索します。
+
+マッチアップ動画APIは `GET /api/v1/matchups/{playerChampionId}/{opponentChampionId}` です。`backend/src/app/data/matchups.json` に登録されたデータのうち、`verificationStatus: "verified"` のレコードのみを返します。

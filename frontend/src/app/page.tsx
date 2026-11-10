@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "./page.module.css";
 
 type Champion = {
@@ -16,6 +16,33 @@ type ChampionResponse = {
   dataDragonVersion: string;
   items: Champion[];
 };
+
+type MatchupVideo = {
+  id: string;
+  playerChampionId: string;
+  opponentChampionId: string;
+  title: string;
+  videoUrl: string;
+  channelName: string;
+  channelUrl: string;
+  publishedAt: string | null;
+  gamePatch: string | null;
+  verifiedAt: string;
+  verificationStatus: "verified";
+  embedStatus: "unknown" | "allowed" | "disabled";
+  sourceUrl: string;
+};
+
+type MatchupResponse = {
+  playerChampionId: string;
+  opponentChampionId: string;
+  items: MatchupVideo[];
+};
+
+function formatIsoDate(value: string): string {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
+  return match ? match[1] : value;
+}
 
 type ChampionPickerProps = {
   id: string;
@@ -186,15 +213,88 @@ export default function Home() {
   const [playerChampion, setPlayerChampion] = useState<Champion | null>(null);
   const [opponentChampion, setOpponentChampion] = useState<Champion | null>(null);
   const [searchedMatchup, setSearchedMatchup] = useState(false);
+  const [matchupVideos, setMatchupVideos] = useState<MatchupVideo[]>([]);
+  const [matchupLoading, setMatchupLoading] = useState(false);
+  const [matchupError, setMatchupError] = useState("");
+  const matchupAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      matchupAbortRef.current?.abort();
+    };
+  }, []);
+
+  function resetMatchupState() {
+    matchupAbortRef.current?.abort();
+    matchupAbortRef.current = null;
+    setSearchedMatchup(false);
+    setMatchupVideos([]);
+    setMatchupLoading(false);
+    setMatchupError("");
+  }
 
   function selectPlayer(champion: Champion | null) {
     setPlayerChampion(champion);
-    setSearchedMatchup(false);
+    resetMatchupState();
   }
 
   function selectOpponent(champion: Champion | null) {
     setOpponentChampion(champion);
-    setSearchedMatchup(false);
+    resetMatchupState();
+  }
+
+  async function handleSearchMatchup() {
+    if (!playerChampion || !opponentChampion) {
+      return;
+    }
+
+    matchupAbortRef.current?.abort();
+    const controller = new AbortController();
+    matchupAbortRef.current = controller;
+
+    setSearchedMatchup(true);
+    setMatchupLoading(true);
+    setMatchupError("");
+    setMatchupVideos([]);
+
+    try {
+      const url = new URL(
+        `/api/v1/matchups/${encodeURIComponent(playerChampion.id)}/${encodeURIComponent(opponentChampion.id)}`,
+        apiBaseUrl,
+      );
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        let errorMessage =
+          "マッチアップ情報を取得できませんでした。APIの起動状態を確認してください。";
+        try {
+          const payload = (await response.json()) as {
+            detail?: { message?: string };
+          };
+          if (payload.detail?.message) {
+            errorMessage = payload.detail.message;
+          }
+        } catch {
+          // Keep fallback error message when response body is not JSON.
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = (await response.json()) as MatchupResponse;
+      setMatchupVideos(data.items);
+    } catch (requestError) {
+      if (requestError instanceof Error && requestError.name === "AbortError") {
+        return;
+      }
+      setMatchupError(
+        requestError instanceof Error
+          ? requestError.message
+          : "マッチアップ情報を取得できませんでした。APIの起動状態を確認してください。",
+      );
+    } finally {
+      if (!controller.signal.aborted) {
+        setMatchupLoading(false);
+      }
+    }
   }
 
   return (
@@ -222,10 +322,10 @@ export default function Home() {
           <button
             className={styles.matchupSearchButton}
             type="button"
-            disabled={!playerChampion || !opponentChampion}
-            onClick={() => setSearchedMatchup(true)}
+            disabled={!playerChampion || !opponentChampion || matchupLoading}
+            onClick={handleSearchMatchup}
           >
-            WinTop!!
+            {matchupLoading ? "検索中..." : "WinTop!!"}
           </button>
         </div>
         <ChampionPicker
@@ -238,16 +338,95 @@ export default function Home() {
       </div>
 
       {searchedMatchup && playerChampion && opponentChampion && (
-        <section className={styles.matchupNotice} aria-live="polite">
-          <p className={styles.step}>MATCHUP</p>
-          <p>
+        <section
+          className={styles.matchupNotice}
+          aria-live="polite"
+          aria-busy={matchupLoading}
+        >
+          <p className={styles.step}>MATCHUP REPLAYS</p>
+          <p className={styles.matchupHeading}>
             <strong>{playerChampion.nameJa}</strong>
             <span className={styles.versus}> vs </span>
             <strong>{opponentChampion.nameJa}</strong>
           </p>
-          <p className={styles.noticeText}>
-            チャンピオンの選択が完了しました。確認済みリプレイの表示は次工程で連携します。
-          </p>
+
+          {matchupLoading && (
+            <p className={styles.message}>確認済みリプレイを検索中...</p>
+          )}
+
+          {!matchupLoading && matchupError && (
+            <p className={styles.error} role="alert">
+              {matchupError}
+            </p>
+          )}
+
+          {!matchupLoading && !matchupError && matchupVideos.length === 0 && (
+            <p className={styles.noticeText}>
+              この対面の確認済み動画はまだありません。
+            </p>
+          )}
+
+          {!matchupLoading && !matchupError && matchupVideos.length > 0 && (
+            <ul className={styles.videoList}>
+              {matchupVideos.map((video) => (
+                <li className={styles.videoCard} key={video.id}>
+                  <div className={styles.videoInfo}>
+                    <h3 className={styles.videoTitle}>{video.title}</h3>
+                    <dl className={styles.videoMeta}>
+                      <div>
+                        <dt>チャンネル</dt>
+                        <dd>
+                          <a
+                            href={video.channelUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {video.channelName}（外部サイト）
+                          </a>
+                        </dd>
+                      </div>
+                      {video.gamePatch && (
+                        <div>
+                          <dt>パッチ</dt>
+                          <dd>{video.gamePatch}</dd>
+                        </div>
+                      )}
+                      {video.publishedAt && (
+                        <div>
+                          <dt>公開日</dt>
+                          <dd>{formatIsoDate(video.publishedAt)}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>確認日</dt>
+                        <dd>{formatIsoDate(video.verifiedAt)}</dd>
+                      </div>
+                      <div>
+                        <dt>出典</dt>
+                        <dd>
+                          <a
+                            href={video.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            確認元ページ（外部サイト）
+                          </a>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <a
+                    className={styles.videoLink}
+                    href={video.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    YouTubeで視聴（外部サイト・新しいタブ）
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
 

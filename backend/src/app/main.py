@@ -9,6 +9,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.champions import Champion, search_champions
+from app.matchups import MatchupVideo, UnknownChampionError, get_matchup_videos
 
 load_dotenv()
 
@@ -31,6 +32,12 @@ app.add_middleware(
 class ChampionListResponse(BaseModel):
     dataDragonVersion: str
     items: list[Champion]
+
+
+class MatchupResponse(BaseModel):
+    playerChampionId: str
+    opponentChampionId: str
+    items: list[MatchupVideo]
 
 
 @app.get("/api/health")
@@ -68,3 +75,38 @@ def get_champions(
         ) from error
 
     return ChampionListResponse(dataDragonVersion=version, items=champions)
+
+
+@app.get(
+    "/api/v1/matchups/{playerChampionId}/{opponentChampionId}",
+    response_model=MatchupResponse,
+)
+def get_matchup(
+    playerChampionId: str,
+    opponentChampionId: str,
+) -> MatchupResponse:
+    try:
+        items = get_matchup_videos(playerChampionId, opponentChampionId)
+    except UnknownChampionError as error:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "unknown_champion",
+                "message": "指定されたチャンピオンが見つかりません。",
+            },
+        ) from error
+    except RuntimeError as error:
+        logger.exception("Matchup catalog request failed")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "matchup_data_unavailable",
+                "message": "マッチアップデータを読み込めませんでした。",
+            },
+        ) from error
+
+    return MatchupResponse(
+        playerChampionId=playerChampionId,
+        opponentChampionId=opponentChampionId,
+        items=items,
+    )
