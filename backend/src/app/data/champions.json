@@ -1,0 +1,1562 @@
+{
+  "dataDragonVersion": "16.22.1",
+  "items": [
+    {
+      "id": "Aatrox",
+      "nameJa": "エイトロックス",
+      "nameEn": "Aatrox",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Aatrox.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ahri",
+      "nameJa": "アーリ",
+      "nameEn": "Ahri",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ahri.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Akali",
+      "nameJa": "アカリ",
+      "nameEn": "Akali",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Akali.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Akshan",
+      "nameJa": "アクシャン",
+      "nameEn": "Akshan",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Akshan.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Alistar",
+      "nameJa": "アリスター",
+      "nameEn": "Alistar",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Alistar.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ambessa",
+      "nameJa": "アンベッサ",
+      "nameEn": "Ambessa",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ambessa.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Amumu",
+      "nameJa": "アムム",
+      "nameEn": "Amumu",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Amumu.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Anivia",
+      "nameJa": "アニビア",
+      "nameEn": "Anivia",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Anivia.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Annie",
+      "nameJa": "アニー",
+      "nameEn": "Annie",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Annie.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Aphelios",
+      "nameJa": "アフェリオス",
+      "nameEn": "Aphelios",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Aphelios.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ashe",
+      "nameJa": "アッシュ",
+      "nameEn": "Ashe",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ashe.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "AurelionSol",
+      "nameJa": "オレリオン・ソル",
+      "nameEn": "Aurelion Sol",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/AurelionSol.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Aurora",
+      "nameJa": "オーロラ",
+      "nameEn": "Aurora",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Aurora.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Azir",
+      "nameJa": "アジール",
+      "nameEn": "Azir",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Azir.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Bard",
+      "nameJa": "バード",
+      "nameEn": "Bard",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Bard.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Belveth",
+      "nameJa": "ベル＝ヴェス",
+      "nameEn": "Bel'Veth",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Belveth.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Blitzcrank",
+      "nameJa": "ブリッツクランク",
+      "nameEn": "Blitzcrank",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Blitzcrank.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Brand",
+      "nameJa": "ブランド",
+      "nameEn": "Brand",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Brand.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Braum",
+      "nameJa": "ブラウム",
+      "nameEn": "Braum",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Braum.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Briar",
+      "nameJa": "ブライアー",
+      "nameEn": "Briar",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Briar.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Caitlyn",
+      "nameJa": "ケイトリン",
+      "nameEn": "Caitlyn",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Caitlyn.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Camille",
+      "nameJa": "カミール",
+      "nameEn": "Camille",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Camille.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Cassiopeia",
+      "nameJa": "カシオペア",
+      "nameEn": "Cassiopeia",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Cassiopeia.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Chogath",
+      "nameJa": "チョ＝ガス",
+      "nameEn": "Cho'Gath",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Chogath.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Corki",
+      "nameJa": "コーキ",
+      "nameEn": "Corki",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Corki.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Darius",
+      "nameJa": "ダリウス",
+      "nameEn": "Darius",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Darius.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Diana",
+      "nameJa": "ダイアナ",
+      "nameEn": "Diana",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Diana.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "DrMundo",
+      "nameJa": "ドクター・ムンド",
+      "nameEn": "Dr. Mundo",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/DrMundo.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Draven",
+      "nameJa": "ドレイヴン",
+      "nameEn": "Draven",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Draven.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ekko",
+      "nameJa": "エコー",
+      "nameEn": "Ekko",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ekko.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Elise",
+      "nameJa": "エリス",
+      "nameEn": "Elise",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Elise.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Evelynn",
+      "nameJa": "イブリン",
+      "nameEn": "Evelynn",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Evelynn.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ezreal",
+      "nameJa": "エズリアル",
+      "nameEn": "Ezreal",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ezreal.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Fiddlesticks",
+      "nameJa": "フィドルスティックス",
+      "nameEn": "Fiddlesticks",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Fiddlesticks.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Fiora",
+      "nameJa": "フィオラ",
+      "nameEn": "Fiora",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Fiora.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Fizz",
+      "nameJa": "フィズ",
+      "nameEn": "Fizz",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Fizz.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Galio",
+      "nameJa": "ガリオ",
+      "nameEn": "Galio",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Galio.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Gangplank",
+      "nameJa": "ガングプランク",
+      "nameEn": "Gangplank",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Gangplank.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Garen",
+      "nameJa": "ガレン",
+      "nameEn": "Garen",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Garen.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Gnar",
+      "nameJa": "ナー",
+      "nameEn": "Gnar",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Gnar.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Gragas",
+      "nameJa": "グラガス",
+      "nameEn": "Gragas",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Gragas.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Graves",
+      "nameJa": "グレイブス",
+      "nameEn": "Graves",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Graves.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Gwen",
+      "nameJa": "グウェン",
+      "nameEn": "Gwen",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Gwen.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Hecarim",
+      "nameJa": "ヘカリム",
+      "nameEn": "Hecarim",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Hecarim.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Heimerdinger",
+      "nameJa": "ハイマーディンガー",
+      "nameEn": "Heimerdinger",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Heimerdinger.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Hwei",
+      "nameJa": "フェイ",
+      "nameEn": "Hwei",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Hwei.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Illaoi",
+      "nameJa": "イラオイ",
+      "nameEn": "Illaoi",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Illaoi.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Irelia",
+      "nameJa": "イレリア",
+      "nameEn": "Irelia",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Irelia.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ivern",
+      "nameJa": "アイバーン",
+      "nameEn": "Ivern",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ivern.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Janna",
+      "nameJa": "ジャンナ",
+      "nameEn": "Janna",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Janna.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "JarvanIV",
+      "nameJa": "ジャーヴァンⅣ",
+      "nameEn": "Jarvan IV",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/JarvanIV.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Jax",
+      "nameJa": "ジャックス",
+      "nameEn": "Jax",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Jax.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Jayce",
+      "nameJa": "ジェイス",
+      "nameEn": "Jayce",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Jayce.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Jhin",
+      "nameJa": "ジン",
+      "nameEn": "Jhin",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Jhin.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Jinx",
+      "nameJa": "ジンクス",
+      "nameEn": "Jinx",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Jinx.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "KSante",
+      "nameJa": "カ・サンテ",
+      "nameEn": "K'Sante",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/KSante.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kaisa",
+      "nameJa": "カイ＝サ",
+      "nameEn": "Kai'Sa",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kaisa.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kalista",
+      "nameJa": "カリスタ",
+      "nameEn": "Kalista",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kalista.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Karma",
+      "nameJa": "カルマ",
+      "nameEn": "Karma",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Karma.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Karthus",
+      "nameJa": "カーサス",
+      "nameEn": "Karthus",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Karthus.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kassadin",
+      "nameJa": "カサディン",
+      "nameEn": "Kassadin",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kassadin.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Katarina",
+      "nameJa": "カタリナ",
+      "nameEn": "Katarina",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Katarina.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kayle",
+      "nameJa": "ケイル",
+      "nameEn": "Kayle",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kayle.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kayn",
+      "nameJa": "ケイン",
+      "nameEn": "Kayn",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kayn.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kennen",
+      "nameJa": "ケネン",
+      "nameEn": "Kennen",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kennen.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Khazix",
+      "nameJa": "カ＝ジックス",
+      "nameEn": "Kha'Zix",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Khazix.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kindred",
+      "nameJa": "キンドレッド",
+      "nameEn": "Kindred",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kindred.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Kled",
+      "nameJa": "クレッド",
+      "nameEn": "Kled",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Kled.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "KogMaw",
+      "nameJa": "コグ＝マウ",
+      "nameEn": "Kog'Maw",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/KogMaw.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Leblanc",
+      "nameJa": "ルブラン",
+      "nameEn": "LeBlanc",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Leblanc.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "LeeSin",
+      "nameJa": "リー・シン",
+      "nameEn": "Lee Sin",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/LeeSin.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Leona",
+      "nameJa": "レオナ",
+      "nameEn": "Leona",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Leona.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Lillia",
+      "nameJa": "リリア",
+      "nameEn": "Lillia",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Lillia.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Lissandra",
+      "nameJa": "リサンドラ",
+      "nameEn": "Lissandra",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Lissandra.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Locke",
+      "nameJa": "ロック",
+      "nameEn": "Locke",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Locke.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Lucian",
+      "nameJa": "ルシアン",
+      "nameEn": "Lucian",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Lucian.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Lulu",
+      "nameJa": "ルル",
+      "nameEn": "Lulu",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Lulu.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Lux",
+      "nameJa": "ラックス",
+      "nameEn": "Lux",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Lux.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Malphite",
+      "nameJa": "マルファイト",
+      "nameEn": "Malphite",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Malphite.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Malzahar",
+      "nameJa": "マルザハール",
+      "nameEn": "Malzahar",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Malzahar.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Maokai",
+      "nameJa": "マオカイ",
+      "nameEn": "Maokai",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Maokai.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "MasterYi",
+      "nameJa": "マスター・イー",
+      "nameEn": "Master Yi",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/MasterYi.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Mel",
+      "nameJa": "メル",
+      "nameEn": "Mel",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Mel.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Milio",
+      "nameJa": "ミリオ",
+      "nameEn": "Milio",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Milio.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "MissFortune",
+      "nameJa": "ミス・フォーチュン",
+      "nameEn": "Miss Fortune",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/MissFortune.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "MonkeyKing",
+      "nameJa": "ウーコン",
+      "nameEn": "Wukong",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/MonkeyKing.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Mordekaiser",
+      "nameJa": "モルデカイザー",
+      "nameEn": "Mordekaiser",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Mordekaiser.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Morgana",
+      "nameJa": "モルガナ",
+      "nameEn": "Morgana",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Morgana.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Naafiri",
+      "nameJa": "ナフィーリ",
+      "nameEn": "Naafiri",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Naafiri.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nami",
+      "nameJa": "ナミ",
+      "nameEn": "Nami",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nami.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nasus",
+      "nameJa": "ナサス",
+      "nameEn": "Nasus",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nasus.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nautilus",
+      "nameJa": "ノーチラス",
+      "nameEn": "Nautilus",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nautilus.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Neeko",
+      "nameJa": "ニーコ",
+      "nameEn": "Neeko",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Neeko.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nidalee",
+      "nameJa": "ニダリー",
+      "nameEn": "Nidalee",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nidalee.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nilah",
+      "nameJa": "ニーラ",
+      "nameEn": "Nilah",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nilah.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nocturne",
+      "nameJa": "ノクターン",
+      "nameEn": "Nocturne",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nocturne.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Nunu",
+      "nameJa": "ヌヌ＆ウィルンプ",
+      "nameEn": "Nunu & Willump",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Nunu.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Olaf",
+      "nameJa": "オラフ",
+      "nameEn": "Olaf",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Olaf.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Orianna",
+      "nameJa": "オリアナ",
+      "nameEn": "Orianna",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Orianna.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ornn",
+      "nameJa": "オーン",
+      "nameEn": "Ornn",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ornn.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Pantheon",
+      "nameJa": "パンテオン",
+      "nameEn": "Pantheon",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Pantheon.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Poppy",
+      "nameJa": "ポッピー",
+      "nameEn": "Poppy",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Poppy.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Pyke",
+      "nameJa": "パイク",
+      "nameEn": "Pyke",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Pyke.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Qiyana",
+      "nameJa": "キヤナ",
+      "nameEn": "Qiyana",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Qiyana.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Quinn",
+      "nameJa": "クイン",
+      "nameEn": "Quinn",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Quinn.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Rakan",
+      "nameJa": "ラカン",
+      "nameEn": "Rakan",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Rakan.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Rammus",
+      "nameJa": "ラムス",
+      "nameEn": "Rammus",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Rammus.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "RekSai",
+      "nameJa": "レク＝サイ",
+      "nameEn": "Rek'Sai",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/RekSai.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Rell",
+      "nameJa": "レル",
+      "nameEn": "Rell",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Rell.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Renata",
+      "nameJa": "レナータ・グラスク",
+      "nameEn": "Renata Glasc",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Renata.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Renekton",
+      "nameJa": "レネクトン",
+      "nameEn": "Renekton",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Renekton.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Rengar",
+      "nameJa": "レンガー",
+      "nameEn": "Rengar",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Rengar.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Riven",
+      "nameJa": "リヴェン",
+      "nameEn": "Riven",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Riven.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Rumble",
+      "nameJa": "ランブル",
+      "nameEn": "Rumble",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Rumble.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ryze",
+      "nameJa": "ライズ",
+      "nameEn": "Ryze",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ryze.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Samira",
+      "nameJa": "サミーラ",
+      "nameEn": "Samira",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Samira.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Sejuani",
+      "nameJa": "セジュアニ",
+      "nameEn": "Sejuani",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Sejuani.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Senna",
+      "nameJa": "セナ",
+      "nameEn": "Senna",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Senna.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Seraphine",
+      "nameJa": "セラフィーン",
+      "nameEn": "Seraphine",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Seraphine.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Sett",
+      "nameJa": "セト",
+      "nameEn": "Sett",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Sett.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Shaco",
+      "nameJa": "シャコ",
+      "nameEn": "Shaco",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Shaco.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Shen",
+      "nameJa": "シェン",
+      "nameEn": "Shen",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Shen.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Shyvana",
+      "nameJa": "シヴァーナ",
+      "nameEn": "Shyvana",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Shyvana.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Singed",
+      "nameJa": "シンジド",
+      "nameEn": "Singed",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Singed.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Sion",
+      "nameJa": "サイオン",
+      "nameEn": "Sion",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Sion.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Sivir",
+      "nameJa": "シヴィア",
+      "nameEn": "Sivir",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Sivir.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Skarner",
+      "nameJa": "スカーナー",
+      "nameEn": "Skarner",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Skarner.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Smolder",
+      "nameJa": "スモルダー",
+      "nameEn": "Smolder",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Smolder.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Sona",
+      "nameJa": "ソナ",
+      "nameEn": "Sona",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Sona.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Soraka",
+      "nameJa": "ソラカ",
+      "nameEn": "Soraka",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Soraka.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Swain",
+      "nameJa": "スウェイン",
+      "nameEn": "Swain",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Swain.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Sylas",
+      "nameJa": "サイラス",
+      "nameEn": "Sylas",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Sylas.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Syndra",
+      "nameJa": "シンドラ",
+      "nameEn": "Syndra",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Syndra.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "TahmKench",
+      "nameJa": "タム・ケンチ",
+      "nameEn": "Tahm Kench",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/TahmKench.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Taliyah",
+      "nameJa": "タリヤ",
+      "nameEn": "Taliyah",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Taliyah.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Talon",
+      "nameJa": "タロン",
+      "nameEn": "Talon",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Talon.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Taric",
+      "nameJa": "タリック",
+      "nameEn": "Taric",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Taric.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Teemo",
+      "nameJa": "ティーモ",
+      "nameEn": "Teemo",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Teemo.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Thresh",
+      "nameJa": "スレッシュ",
+      "nameEn": "Thresh",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Thresh.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Tristana",
+      "nameJa": "トリスターナ",
+      "nameEn": "Tristana",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Tristana.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Trundle",
+      "nameJa": "トランドル",
+      "nameEn": "Trundle",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Trundle.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Tryndamere",
+      "nameJa": "トリンダメア",
+      "nameEn": "Tryndamere",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Tryndamere.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "TwistedFate",
+      "nameJa": "ツイステッド・フェイト",
+      "nameEn": "Twisted Fate",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/TwistedFate.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Twitch",
+      "nameJa": "トゥイッチ",
+      "nameEn": "Twitch",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Twitch.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Udyr",
+      "nameJa": "ウディア",
+      "nameEn": "Udyr",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Udyr.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Urgot",
+      "nameJa": "アーゴット",
+      "nameEn": "Urgot",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Urgot.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Varus",
+      "nameJa": "ヴァルス",
+      "nameEn": "Varus",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Varus.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Vayne",
+      "nameJa": "ヴェイン",
+      "nameEn": "Vayne",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Vayne.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Veigar",
+      "nameJa": "ベイガー",
+      "nameEn": "Veigar",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Veigar.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Velkoz",
+      "nameJa": "ヴェル＝コズ",
+      "nameEn": "Vel'Koz",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Velkoz.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Vex",
+      "nameJa": "ヴェックス",
+      "nameEn": "Vex",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Vex.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Vi",
+      "nameJa": "ヴァイ",
+      "nameEn": "Vi",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Vi.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Viego",
+      "nameJa": "ヴィエゴ",
+      "nameEn": "Viego",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Viego.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Viktor",
+      "nameJa": "ビクター",
+      "nameEn": "Viktor",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Viktor.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Vladimir",
+      "nameJa": "ブラッドミア",
+      "nameEn": "Vladimir",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Vladimir.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Volibear",
+      "nameJa": "ボリベア",
+      "nameEn": "Volibear",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Volibear.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Warwick",
+      "nameJa": "ワーウィック",
+      "nameEn": "Warwick",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Warwick.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Xayah",
+      "nameJa": "ザヤ",
+      "nameEn": "Xayah",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Xayah.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Xerath",
+      "nameJa": "ゼラス",
+      "nameEn": "Xerath",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Xerath.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "XinZhao",
+      "nameJa": "シン・ジャオ",
+      "nameEn": "Xin Zhao",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/XinZhao.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Yasuo",
+      "nameJa": "ヤスオ",
+      "nameEn": "Yasuo",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Yasuo.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Yone",
+      "nameJa": "ヨネ",
+      "nameEn": "Yone",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Yone.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Yorick",
+      "nameJa": "ヨリック",
+      "nameEn": "Yorick",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Yorick.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Yunara",
+      "nameJa": "ユナラ",
+      "nameEn": "Yunara",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Yunara.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Yuumi",
+      "nameJa": "ユーミ",
+      "nameEn": "Yuumi",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Yuumi.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zaahen",
+      "nameJa": "ザーヘン",
+      "nameEn": "Zaahen",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zaahen.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zac",
+      "nameJa": "ザック",
+      "nameEn": "Zac",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zac.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zed",
+      "nameJa": "ゼド",
+      "nameEn": "Zed",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zed.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zeri",
+      "nameJa": "ゼリ",
+      "nameEn": "Zeri",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zeri.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Ziggs",
+      "nameJa": "ジグス",
+      "nameEn": "Ziggs",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Ziggs.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zilean",
+      "nameJa": "ジリアン",
+      "nameEn": "Zilean",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zilean.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zoe",
+      "nameJa": "ゾーイ",
+      "nameEn": "Zoe",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zoe.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    },
+    {
+      "id": "Zyra",
+      "nameJa": "ザイラ",
+      "nameEn": "Zyra",
+      "aliases": [],
+      "imageUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/champion/Zyra.png",
+      "dataDragonVersion": "16.22.1",
+      "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/champion.json"
+    }
+  ]
+}
