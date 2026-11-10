@@ -38,6 +38,17 @@ def test_matchup_returns_empty_items_for_valid_champions_without_replays() -> No
     }
 
 
+def test_matchup_returns_catalog_entries_from_playlist() -> None:
+    response = get("/api/v1/matchups/Darius/KSante")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["playerChampionId"] == "Darius"
+    assert body["opponentChampionId"] == "KSante"
+    assert len(body["items"]) >= 1
+    assert all(item["verificationStatus"] == "verified" for item in body["items"])
+
+
 def test_matchup_returns_404_for_unknown_champion() -> None:
     unknown_player = get("/api/v1/matchups/NotAChampion/Darius")
     unknown_opponent = get("/api/v1/matchups/Aatrox/NotAChampion")
