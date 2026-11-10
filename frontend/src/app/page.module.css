@@ -62,6 +62,28 @@
   background: #111827;
 }
 
+.playerPicker {
+  --side-accent: #65aaff;
+  --side-accent-strong: #91c5ff;
+  --side-border: #315783;
+  --side-surface: #111d2d;
+  --side-selected-surface: #142a43;
+
+  border-color: #28466a;
+  background: linear-gradient(145deg, #121f31, #111827 56%);
+}
+
+.opponentPicker {
+  --side-accent: #ff777d;
+  --side-accent-strong: #ffa0a4;
+  --side-border: #713e48;
+  --side-surface: #2a171d;
+  --side-selected-surface: #351c23;
+
+  border-color: #5b3039;
+  background: linear-gradient(145deg, #2a171d, #111827 56%);
+}
+
 .pickerHeader {
   display: flex;
   align-items: center;
@@ -78,6 +100,14 @@
   font-size: 1.25rem;
 }
 
+.picker .step {
+  color: var(--side-accent);
+}
+
+.pickerHeader h2 {
+  color: var(--side-accent-strong);
+}
+
 .clearButton {
   padding: 8px 10px;
   border: 1px solid #344256;
@@ -88,7 +118,7 @@
 }
 
 .clearButton:hover {
-  border-color: #76c7b7;
+  border-color: var(--side-accent);
   color: #eef2f8;
 }
 
@@ -99,19 +129,19 @@
   min-height: 74px;
   margin-bottom: 20px;
   padding: 12px;
-  border: 1px solid #3d746f;
+  border: 1px solid var(--side-border);
   border-radius: 10px;
-  background: #142522;
+  background: var(--side-selected-surface);
 }
 
 .selectedEmpty {
   border-style: dashed;
-  border-color: #344256;
-  background: #0e1622;
+  border-color: color-mix(in srgb, var(--side-accent) 45%, #263244);
+  background: var(--side-surface);
 }
 
 .selectionPlaceholder {
-  color: #8190a3;
+  color: color-mix(in srgb, var(--side-accent-strong) 72%, #aab8c8);
   font-size: 0.9rem;
 }
 
@@ -131,7 +161,7 @@
 
 .selected .selectedMark {
   margin-left: auto;
-  color: #8fe0ce;
+  color: var(--side-accent-strong);
   font-weight: 700;
 }
 
@@ -197,6 +227,12 @@
   outline-offset: 2px;
 }
 
+.picker .searchInput:focus-visible,
+.picker .clearButton:focus-visible,
+.picker .champion:focus-visible {
+  outline-color: var(--side-accent);
+}
+
 .results {
   min-height: 184px;
   max-height: 340px;
@@ -225,10 +261,10 @@
   font-size: 0.78rem;
 }
 
-.champion:hover,
-.championSelected {
-  border-color: #3d746f;
-  background: #142522;
+.picker .champion:hover,
+.picker .championSelected {
+  border-color: var(--side-border);
+  background: var(--side-selected-surface);
   color: #eef2f8;
 }
 

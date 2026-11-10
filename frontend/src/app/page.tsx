@@ -19,6 +19,7 @@ type ChampionResponse = {
 
 type ChampionPickerProps = {
   id: string;
+  side: "player" | "opponent";
   title: string;
   selected: Champion | null;
   onSelect: (champion: Champion | null) => void;
@@ -29,6 +30,7 @@ const apiBaseUrl =
 
 function ChampionPicker({
   id,
+  side,
   title,
   selected,
   onSelect,
@@ -79,7 +81,10 @@ function ChampionPicker({
   }, [query]);
 
   return (
-    <section className={styles.picker} aria-labelledby={`${id}-heading`}>
+    <section
+      className={`${styles.picker} ${side === "player" ? styles.playerPicker : styles.opponentPicker}`}
+      aria-labelledby={`${id}-heading`}
+    >
       <div className={styles.pickerHeader}>
         <div>
           <p className={styles.step}>CHAMPION SELECT</p>
@@ -208,6 +213,7 @@ export default function Home() {
       <div className={styles.matchupSelector}>
         <ChampionPicker
           id="player"
+          side="player"
           title="自分のチャンピオン"
           selected={playerChampion}
           onSelect={selectPlayer}
@@ -224,6 +230,7 @@ export default function Home() {
         </div>
         <ChampionPicker
           id="opponent"
+          side="opponent"
           title="相手のチャンピオン"
           selected={opponentChampion}
           onSelect={selectOpponent}
