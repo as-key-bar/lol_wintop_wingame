@@ -8,6 +8,7 @@ import { RiotFooter } from "@/components/RiotFooter";
 import {
   apiBaseUrl,
   formatIsoDate,
+  getOrCreateVoterToken,
   getYouTubeEmbedUrl,
   type Champion,
   type ChampionResponse,
@@ -15,6 +16,22 @@ import {
   type MatchupVideo,
 } from "@/lib/api";
 import styles from "@/app/page.module.css";
+
+function sortMatchupVideos(videos: MatchupVideo[]): MatchupVideo[] {
+  return [...videos].sort((a, b) => {
+    const aSaved = a.origin !== "youtube_search" ? 1 : 0;
+    const bSaved = b.origin !== "youtube_search" ? 1 : 0;
+    if (aSaved !== bSaved) {
+      return bSaved - aSaved;
+    }
+    const aVotes = a.upvoteCount ?? 0;
+    const bVotes = b.upvoteCount ?? 0;
+    if (aVotes !== bVotes) {
+      return bVotes - aVotes;
+    }
+    return 0;
+  });
+}
 
 function MatchupContent() {
   const params = useParams<{
@@ -31,6 +48,7 @@ function MatchupContent() {
   const [loading, setLoading] = useState(true);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [searchedCandidates, setSearchedCandidates] = useState(false);
+  const [upvotingVideoId, setUpvotingVideoId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -48,11 +66,15 @@ function MatchupContent() {
       setSearchedCandidates(false);
 
       try {
+        const voterToken = getOrCreateVoterToken();
         const championsUrl = new URL("/api/v1/champions", apiBaseUrl);
         const matchupUrl = new URL(
           `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}`,
           apiBaseUrl,
         );
+        if (voterToken) {
+          matchupUrl.searchParams.set("voterToken", voterToken);
+        }
 
         const [championsResponse, matchupResponse] = await Promise.all([
           fetch(championsUrl, { signal: controller.signal }),
@@ -140,11 +162,15 @@ function MatchupContent() {
     }
     setLoadingCandidates(true);
     try {
+      const voterToken = getOrCreateVoterToken();
       const matchupUrl = new URL(
         `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}`,
         apiBaseUrl,
       );
       matchupUrl.searchParams.set("includeCandidates", "true");
+      if (voterToken) {
+        matchupUrl.searchParams.set("voterToken", voterToken);
+      }
       const response = await fetch(matchupUrl);
       if (response.ok) {
         const data = (await response.json()) as MatchupResponse;
@@ -156,6 +182,67 @@ function MatchupContent() {
     } finally {
       setSearchedCandidates(true);
       setLoadingCandidates(false);
+    }
+  }
+
+  async function handleToggleUpvote(video: MatchupVideo) {
+    if (!playerChampionId || !opponentChampionId || upvotingVideoId) {
+      return;
+    }
+
+    setUpvotingVideoId(video.id);
+    setError("");
+    try {
+      const voterToken = getOrCreateVoterToken();
+      const upvoteUrl = new URL(
+        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/upvote`,
+        apiBaseUrl,
+      );
+      const response = await fetch(upvoteUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          video,
+          voterToken,
+        }),
+      });
+      if (!response.ok) {
+        let errorMessage =
+          "UVの保存に失敗しました。データベースの起動状態を確認してください。";
+        try {
+          const payload = (await response.json()) as {
+            detail?: { message?: string };
+          };
+          if (payload.detail?.message) {
+            errorMessage = payload.detail.message;
+          }
+        } catch {
+          // Keep fallback error message.
+        }
+        throw new Error(errorMessage);
+      }
+
+      const updatedVideo = (await response.json()) as MatchupVideo;
+      setMatchupVideos((previous) =>
+        sortMatchupVideos(
+          previous.map((item) =>
+            item.id === video.id || item.videoUrl === updatedVideo.videoUrl
+              ? updatedVideo
+              : item,
+          ),
+        ),
+      );
+      setSelectedVideoId(updatedVideo.id);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "UVの保存に失敗しました。",
+      );
+    } finally {
+      setUpvotingVideoId(null);
     }
   }
 
@@ -243,57 +330,59 @@ function MatchupContent() {
 
         {!loading && !error && activeVideo && (
           <>
-            {matchupVideos.length > 1 && (
-              <div
-                className={styles.videoSelector}
-                role="tablist"
-                aria-label="マッチアップ動画の切り替え"
-              >
-                {matchupVideos.map((video, index) => {
-                  const isSelected = video.id === activeVideo.id;
-                  const isYouTubeCandidate = video.origin === "youtube_search";
-                  return (
-                    <button
-                      key={video.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isSelected}
-                      className={`${styles.videoSelectorOption} ${
-                        isSelected ? styles.videoSelectorOptionActive : ""
+            <div
+              className={styles.videoSelector}
+              role="tablist"
+              aria-label="マッチアップ動画の切り替え"
+            >
+              {matchupVideos.map((video, index) => {
+                const isSelected = video.id === activeVideo.id;
+                const isYouTubeCandidate = video.origin === "youtube_search";
+                const upvotes = video.upvoteCount ?? 0;
+                return (
+                  <button
+                    key={video.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isSelected}
+                    className={`${styles.videoSelectorOption} ${
+                      isSelected ? styles.videoSelectorOptionActive : ""
+                    }`}
+                    onClick={() => setSelectedVideoId(video.id)}
+                    title={video.title}
+                  >
+                    <span className={styles.videoSelectorIndex}>
+                      動画 {index + 1}
+                    </span>
+                    <span
+                      className={`${styles.videoOriginBadge} ${
+                        isYouTubeCandidate
+                          ? styles.originCandidate
+                          : styles.originSaved
                       }`}
-                      onClick={() => setSelectedVideoId(video.id)}
-                      title={video.title}
                     >
-                      <span className={styles.videoSelectorIndex}>
-                        動画 {index + 1}
+                      {isYouTubeCandidate ? "YouTube検索" : "DB保存済"}
+                    </span>
+                    {upvotes > 0 && (
+                      <span className={styles.videoSelectorVotes}>
+                        ▲ {upvotes}
                       </span>
-                      {video.gamePatch && (
-                        <span className={styles.videoSelectorPatch}>
-                          Patch {video.gamePatch}
-                        </span>
-                      )}
-                      <span
-                        className={`${styles.videoOriginBadge} ${
-                          isYouTubeCandidate
-                            ? styles.originCandidate
-                            : styles.originSaved
-                        }`}
-                      >
-                        {isYouTubeCandidate ? "YouTube候補" : "登録済"}
+                    )}
+                    {video.gamePatch && (
+                      <span className={styles.videoSelectorPatch}>
+                        Patch {video.gamePatch}
                       </span>
-                      <span className={styles.videoSelectorTitle}>
-                        {video.title}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    )}
+                    <span className={styles.videoSelectorTitle}>
+                      {video.title}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
             <article
-              className={`${styles.videoEmbedCard} ${
-                matchupVideos.length > 1 ? styles.videoEmbedCardWithSelector : ""
-              }`}
+              className={`${styles.videoEmbedCard} ${styles.videoEmbedCardWithSelector}`}
             >
               {activeEmbedUrl && (
                 <div className={styles.videoPlayerWrapper}>
@@ -321,8 +410,8 @@ function MatchupContent() {
                       }`}
                     >
                       {activeVideo.origin === "youtube_search"
-                        ? "YouTube候補"
-                        : "登録済"}
+                        ? "YouTube検索"
+                        : "DB保存済"}
                     </span>
                     <h2 className={styles.videoTitle}>{activeVideo.title}</h2>
                   </div>
@@ -369,14 +458,29 @@ function MatchupContent() {
                     </div>
                   </dl>
                 </div>
-                <a
-                  className={styles.videoLink}
-                  href={activeVideo.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  YouTubeで視聴（外部サイト・新しいタブ）
-                </a>
+
+                <div className={styles.videoActions}>
+                  <button
+                    type="button"
+                    className={`${styles.upvoteButton} ${
+                      activeVideo.upvotedByViewer ? styles.upvoteButtonActive : ""
+                    }`}
+                    aria-pressed={Boolean(activeVideo.upvotedByViewer)}
+                    disabled={upvotingVideoId === activeVideo.id}
+                    onClick={() => handleToggleUpvote(activeVideo)}
+                  >
+                    <span>{activeVideo.upvotedByViewer ? "▲ UV済" : "△ UV"}</span>
+                    <strong>{activeVideo.upvoteCount ?? 0}</strong>
+                  </button>
+                  <a
+                    className={styles.videoLink}
+                    href={activeVideo.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    YouTubeで視聴（外部サイト・新しいタブ）
+                  </a>
+                </div>
               </div>
             </article>
           </>

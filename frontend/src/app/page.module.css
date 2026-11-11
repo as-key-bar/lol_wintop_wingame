@@ -496,6 +496,13 @@
   font-weight: 600;
 }
 
+.videoSelectorVotes {
+  flex: 0 0 auto;
+  color: #f6c873;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .videoSelectorTitle {
   overflow: hidden;
   color: #8190a3;
@@ -609,6 +616,64 @@
   text-underline-offset: 3px;
 }
 
+.videoActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.upvoteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid #355886;
+  border-radius: 10px;
+  color: #c4d7ef;
+  background: #14263d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.upvoteButton:hover:not(:disabled) {
+  border-color: #649be0;
+  color: #eef2f8;
+  background: #1c3556;
+}
+
+.upvoteButtonActive {
+  border-color: #f6c873;
+  color: #1c1608;
+  background: #f6c873;
+}
+
+.upvoteButtonActive:hover:not(:disabled) {
+  border-color: #ffd98e;
+  color: #1c1608;
+  background: #ffd98e;
+}
+
+.upvoteButton:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.upvoteButton:focus-visible,
+.videoLink:focus-visible,
+.videoMeta a:focus-visible {
+  outline: 2px solid #76c7b7;
+  outline-offset: 2px;
+}
+
 .videoLink {
   display: inline-flex;
   align-items: center;
@@ -631,12 +696,6 @@
 .videoLink:hover {
   border-color: #9be4d5;
   background: #9be4d5;
-}
-
-.videoLink:focus-visible,
-.videoMeta a:focus-visible {
-  outline: 2px solid #76c7b7;
-  outline-offset: 2px;
 }
 
 .footer {

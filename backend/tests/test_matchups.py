@@ -2,20 +2,27 @@ import json
 from pathlib import Path
 
 import pytest
+from sqlalchemy import create_engine
 
-from app import matchups, youtube_search
+from app import database, matchups, youtube_search
 from app.champions import load_catalog
-from conftest import api_get as get
+from conftest import api_get as get, api_post as post
 
 
 @pytest.fixture(autouse=True)
-def clear_matchup_cache(monkeypatch: pytest.MonkeyPatch):
+def clear_matchup_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    engine = create_engine(f"sqlite:///{tmp_path / 'test_matchups.db'}", future=True)
+    database.set_engine(engine)
+    matchups.clear_seeded_cache()
     matchups.load_matchups.cache_clear()
     youtube_search._cached_youtube_search.cache_clear()
     monkeypatch.setattr(
         matchups, "search_youtube_matchup_candidates", lambda *args, **kwargs: []
     )
     yield
+    engine.dispose()
+    database.set_engine(None)
+    matchups.clear_seeded_cache()
     matchups.load_matchups.cache_clear()
     youtube_search._cached_youtube_search.cache_clear()
 
@@ -443,4 +450,151 @@ def test_title_matches_matchup_uses_word_boundaries_for_short_champion_names() -
     assert youtube_search.title_matches_matchup(
         "Vi Top vs Darius - KR Challenger Patch 26.22", vi, darius
     )
+
+
+def test_upvote_persists_youtube_candidate_to_database_and_toggles_vote(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    candidate_payload = {
+        "id": "yt-aatrox-vs-darius-live123",
+        "playerChampionId": "Aatrox",
+        "opponentChampionId": "Darius",
+        "title": "Aatrox Top vs Darius - KR Challenger Patch 26.22",
+        "videoUrl": "https://www.youtube.com/watch?v=live123",
+        "channelName": "Challenger Replays",
+        "channelUrl": "https://www.youtube.com/@ChallengerReplays",
+        "publishedAt": None,
+        "gamePatch": "26.22",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+        "origin": "youtube_search",
+    }
+
+    # 1. Upvote a YouTube candidate video
+    upvote_response = post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-token-alpha-12345", "video": candidate_payload},
+    )
+    assert upvote_response.status_code == 200
+    saved_item = upvote_response.json()
+    assert saved_item["id"] == "yt-aatrox-vs-darius-live123"
+    assert saved_item["origin"] == "saved"
+    assert saved_item["upvoteCount"] == 1
+    assert saved_item["upvotedByViewer"] is True
+
+    # 2. Subsequent matchup search must return the DB-saved video WITHOUT calling YouTube
+    def fail_if_youtube_called(*args, **kwargs):
+        raise AssertionError("YouTube must not be queried after candidate is saved to DB")
+
+    monkeypatch.setattr(
+        matchups, "search_youtube_matchup_candidates", fail_if_youtube_called
+    )
+
+    get_response = get(
+        "/api/v1/matchups/Aatrox/Darius?voterToken=voter-token-alpha-12345"
+    )
+    assert get_response.status_code == 200
+    items = get_response.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == "yt-aatrox-vs-darius-live123"
+    assert items[0]["origin"] == "saved"
+    assert items[0]["upvoteCount"] == 1
+    assert items[0]["upvotedByViewer"] is True
+
+    # 3. Clicking upvote again with the same voterToken toggles (removes) the vote
+    unvote_response = post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-token-alpha-12345", "video": saved_item},
+    )
+    assert unvote_response.status_code == 200
+    unvoted_item = unvote_response.json()
+    assert unvoted_item["upvoteCount"] == 0
+    assert unvoted_item["upvotedByViewer"] is False
+
+
+def test_saved_videos_are_sorted_by_upvote_count_descending() -> None:
+    video_older_patch = {
+        "id": "yt-aatrox-vs-darius-older",
+        "playerChampionId": "Aatrox",
+        "opponentChampionId": "Darius",
+        "title": "Aatrox Top vs Darius - KR Master Patch 26.20",
+        "videoUrl": "https://www.youtube.com/watch?v=older20",
+        "channelName": "Challenger Replays",
+        "channelUrl": "https://www.youtube.com/@ChallengerReplays",
+        "publishedAt": None,
+        "gamePatch": "26.20",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+        "origin": "youtube_search",
+    }
+    video_newer_patch = {
+        "id": "yt-aatrox-vs-darius-newer",
+        "playerChampionId": "Aatrox",
+        "opponentChampionId": "Darius",
+        "title": "Aatrox Top vs Darius - KR Challenger Patch 26.22",
+        "videoUrl": "https://www.youtube.com/watch?v=newer22",
+        "channelName": "Challenger Replays",
+        "channelUrl": "https://www.youtube.com/@ChallengerReplays",
+        "publishedAt": None,
+        "gamePatch": "26.22",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+        "origin": "youtube_search",
+    }
+
+    # Save newer patch with 1 vote, older patch with 2 votes
+    post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-one-12345", "video": video_newer_patch},
+    )
+    post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-one-12345", "video": video_older_patch},
+    )
+    post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-two-67890", "video": video_older_patch},
+    )
+
+    response = get("/api/v1/matchups/Aatrox/Darius")
+    assert response.status_code == 200
+    items = response.json()["items"]
+    assert [item["id"] for item in items] == [
+        "yt-aatrox-vs-darius-older",
+        "yt-aatrox-vs-darius-newer",
+    ]
+    assert [item["upvoteCount"] for item in items] == [2, 1]
+
+
+def test_upvote_rejects_mismatched_title_for_matchup() -> None:
+    bad_video = {
+        "id": "yt-bad-matchup",
+        "playerChampionId": "Aatrox",
+        "opponentChampionId": "Darius",
+        "title": "Garen Top vs Teemo - KR Challenger Patch 26.22",
+        "videoUrl": "https://www.youtube.com/watch?v=badmatch1",
+        "channelName": "Challenger Replays",
+        "channelUrl": "https://www.youtube.com/@ChallengerReplays",
+        "publishedAt": None,
+        "gamePatch": "26.22",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+        "origin": "youtube_search",
+    }
+
+    response = post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-one-12345", "video": bad_video},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "invalid_upvote"
+
 

@@ -1,30 +1,31 @@
 import logging
-import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from sqlalchemy import create_engine, text
+from pydantic import BaseModel, Field
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.champions import Champion, search_champions
-from app.matchups import MatchupVideo, UnknownChampionError, get_matchup_videos
+from app.database import compute_voter_hash, get_engine
+from app.matchups import (
+    InvalidUpvoteError,
+    MatchupVideo,
+    UnknownChampionError,
+    get_matchup_videos,
+    toggle_matchup_video_upvote,
+)
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
-database_url = os.getenv(
-    "DATABASE_URL",
-    "mysql+pymysql://wintop:local_only_password@127.0.0.1:3306/wintop",
-)
-engine = create_engine(database_url, pool_pre_ping=True)
 
 app = FastAPI(title="wintop-wingame API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -40,6 +41,11 @@ class MatchupResponse(BaseModel):
     items: list[MatchupVideo]
 
 
+class UpvoteRequest(BaseModel):
+    video: MatchupVideo
+    voterToken: str = Field(min_length=1, max_length=128)
+
+
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -48,7 +54,7 @@ def health() -> dict[str, str]:
 @app.get("/api/health/database")
 def database_health() -> dict[str, str]:
     try:
-        with engine.connect() as connection:
+        with get_engine().connect() as connection:
             connection.execute(text("SELECT 1"))
     except SQLAlchemyError as error:
         raise HTTPException(
@@ -82,15 +88,20 @@ def get_champions(
     response_model=MatchupResponse,
 )
 def get_matchup(
+    request: Request,
     playerChampionId: str,
     opponentChampionId: str,
     includeCandidates: bool = Query(default=False),
+    voterToken: str | None = Query(default=None, max_length=128),
 ) -> MatchupResponse:
+    client_host = request.client.host if request.client else None
+    voter_hash = compute_voter_hash(voterToken, client_host)
     try:
         items = get_matchup_videos(
             playerChampionId,
             opponentChampionId,
             include_candidates=includeCandidates,
+            voter_hash=voter_hash,
         )
     except UnknownChampionError as error:
         raise HTTPException(
@@ -115,3 +126,49 @@ def get_matchup(
         opponentChampionId=opponentChampionId,
         items=items,
     )
+
+
+@app.post(
+    "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/upvote",
+    response_model=MatchupVideo,
+)
+def post_matchup_upvote(
+    request: Request,
+    playerChampionId: str,
+    opponentChampionId: str,
+    body: UpvoteRequest,
+) -> MatchupVideo:
+    client_host = request.client.host if request.client else None
+    voter_hash = compute_voter_hash(body.voterToken, client_host)
+    try:
+        return toggle_matchup_video_upvote(
+            player_champion_id=playerChampionId,
+            opponent_champion_id=opponentChampionId,
+            video=body.video,
+            voter_hash=voter_hash,
+        )
+    except UnknownChampionError as error:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "unknown_champion",
+                "message": "指定されたチャンピオンが見つかりません。",
+            },
+        ) from error
+    except InvalidUpvoteError as error:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "invalid_upvote",
+                "message": str(error),
+            },
+        ) from error
+    except RuntimeError as error:
+        logger.exception("Matchup upvote failed")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "upvote_unavailable",
+                "message": "UVの保存に失敗しました。データベースの起動状態を確認してください。",
+            },
+        ) from error

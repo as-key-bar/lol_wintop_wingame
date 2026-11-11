@@ -26,6 +26,8 @@ export type MatchupVideo = {
   embedStatus: "unknown" | "allowed" | "disabled";
   sourceUrl: string;
   origin?: "saved" | "youtube_search";
+  upvoteCount?: number;
+  upvotedByViewer?: boolean;
 };
 
 export type MatchupResponse = {
@@ -52,6 +54,28 @@ export function getYouTubeEmbedUrl(videoUrl: string): string | null {
     return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
   } catch {
     return null;
+  }
+}
+
+const VOTER_TOKEN_STORAGE_KEY = "wintop_voter_token";
+
+export function getOrCreateVoterToken(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  try {
+    const existing = window.localStorage.getItem(VOTER_TOKEN_STORAGE_KEY);
+    if (existing && existing.trim()) {
+      return existing.trim();
+    }
+    const created =
+      typeof window.crypto?.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    window.localStorage.setItem(VOTER_TOKEN_STORAGE_KEY, created);
+    return created;
+  } catch {
+    return "ephemeral-voter";
   }
 }
 
