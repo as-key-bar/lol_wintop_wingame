@@ -162,71 +162,56 @@ function MatchupContent() {
 
   return (
     <>
-      <section className={styles.matchupBanner} aria-label="選択中のマッチアップ">
-        <div className={`${styles.matchupFighter} ${styles.playerPicker}`}>
-          <p className={styles.step}>PLAYER CHAMPION</p>
-          <div className={styles.fighterSummary}>
+      <header className={styles.matchupCompactBar} aria-label="選択中のマッチアップ">
+        <div className={styles.matchupBarLeft}>
+          <Link className={styles.backLink} href="/">
+            ← チャンピオン選択
+          </Link>
+          <span className={styles.brandCompact}>wintop-wingame</span>
+        </div>
+
+        <h1 className={styles.matchupInlineSummary}>
+          <span className={`${styles.championChip} ${styles.playerChip}`}>
             {playerChampion && (
               <Image
                 src={playerChampion.imageUrl}
                 alt=""
-                width={44}
-                height={44}
+                width={28}
+                height={28}
                 unoptimized
               />
             )}
-            <div>
-              <strong>{playerDisplayName}</strong>
-              {playerChampion && <span>{playerChampion.nameEn}</span>}
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.versusBadge} aria-hidden="true">
-          VS
-        </div>
-
-        <div className={`${styles.matchupFighter} ${styles.opponentPicker}`}>
-          <p className={styles.step}>OPPONENT CHAMPION</p>
-          <div className={styles.fighterSummary}>
+            <strong>{playerDisplayName}</strong>
+          </span>
+          <span className={styles.versusInline}>VS</span>
+          <span className={`${styles.championChip} ${styles.opponentChip}`}>
             {opponentChampion && (
               <Image
                 src={opponentChampion.imageUrl}
                 alt=""
-                width={44}
-                height={44}
+                width={28}
+                height={28}
                 unoptimized
               />
             )}
-            <div>
-              <strong>{opponentDisplayName}</strong>
-              {opponentChampion && <span>{opponentChampion.nameEn}</span>}
-            </div>
-          </div>
-        </div>
-      </section>
+            <strong>{opponentDisplayName}</strong>
+          </span>
+        </h1>
 
-      <section
-        className={styles.matchupNotice}
-        aria-live="polite"
-        aria-busy={loading}
-      >
-        <div className={styles.matchupSectionHeader}>
-          <div>
-            <p className={styles.step}>MATCHUP REPLAYS</p>
-            <h2 className={styles.matchupHeading}>
-              <strong>{playerDisplayName}</strong>
-              <span className={styles.versus}> vs </span>
-              <strong>{opponentDisplayName}</strong>
-            </h2>
-          </div>
-          {!loading && !error && matchupVideos.length > 0 && (
+        <div className={styles.matchupBarRight}>
+          {!loading && !error && (
             <span className={styles.videoCount}>
               全 {matchupVideos.length} 件
             </span>
           )}
         </div>
+      </header>
 
+      <section
+        className={styles.matchupResults}
+        aria-live="polite"
+        aria-busy={loading}
+      >
         {loading && (
           <p className={styles.message}>確認済みリプレイを検索中...</p>
         )}
@@ -269,7 +254,7 @@ function MatchupContent() {
 
                   <div className={styles.videoCardBody}>
                     <div className={styles.videoInfo}>
-                      <h3 className={styles.videoTitle}>{video.title}</h3>
+                      <h2 className={styles.videoTitle}>{video.title}</h2>
                       <dl className={styles.videoMeta}>
                         <div>
                           <dt>チャンネル</dt>
@@ -335,23 +320,10 @@ function MatchupContent() {
 export default function MatchupPage() {
   return (
     <main className={`${styles.page} ${styles.matchupPage}`}>
-      <header className={`${styles.header} ${styles.matchupHeader}`}>
-        <div>
-          <p className={styles.eyebrow}>LEAGUE OF LEGENDS · TOP LANE</p>
-          <h1>wintop-wingame</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <Link className={styles.backLink} href="/">
-            ← チャンピオン選択に戻る
-          </Link>
-          <span className={styles.phase}>PHASE 1 · MVP</span>
-        </div>
-      </header>
-
       <Suspense
         fallback={
           <section
-            className={styles.matchupNotice}
+            className={styles.matchupResults}
             aria-live="polite"
             aria-busy="true"
           >
