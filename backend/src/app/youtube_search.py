@@ -14,6 +14,18 @@ logger = logging.getLogger(__name__)
 
 YOUTUBE_SEARCH_URL = "https://www.youtube.com/results"
 YOUTUBE_API_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+MIN_REPLAY_DURATION_SECONDS = 600
+
+NON_TOP_LANE_PATTERN = re.compile(
+    r"\b(?:mid|middle|jungle|jg|bot|bottom|adc|support|sup|aram)\b"
+    r"|ミッド|ジャングル|ボット|サポート",
+    re.IGNORECASE,
+)
+TOP_LANE_PATTERN = re.compile(r"\btop\b|トップ", re.IGNORECASE)
+EXCLUDED_VIDEO_PATTERN = re.compile(
+    r"\b(?:shorts|montage|highlights|compilation)\b|#shorts",
+    re.IGNORECASE,
+)
 
 
 def _fetch_text(url: str, timeout: float = 8.0) -> str:
@@ -29,41 +41,135 @@ def _fetch_text(url: str, timeout: float = 8.0) -> str:
 
 
 def extract_patch_from_title(title: str) -> str | None:
-    match = re.search(r"(?:Patch\s+|パッチ)([0-9]+\.[0-9]+)", title, re.IGNORECASE)
+    match = re.search(
+        r"(?:Patch\s+|パッチ\s*)([0-9]+(?:\.[0-9]+)+)", title, re.IGNORECASE
+    )
     return match.group(1) if match else None
+
+
+def parse_patch_tuple(patch: str | None) -> tuple[int, ...]:
+    if not patch:
+        return (0, 0)
+    parts = [int(part) for part in patch.split(".") if part.isdigit()]
+    return tuple(parts) if parts else (0, 0)
+
+
+def extract_rank_tier_score(title: str) -> int:
+    normalized = title.casefold()
+    if "challenger" in normalized or "チャレンジャー" in normalized:
+        return 3
+    if "grandmaster" in normalized or "グランドマスター" in normalized:
+        return 2
+    if "master" in normalized or "マスター" in normalized:
+        return 1
+    return 0
+
+
+def extract_channel_trust_score(channel_name: str) -> int:
+    normalized = channel_name.casefold()
+    if "challenger replays" in normalized or "domisumreplay" in normalized:
+        return 2
+    if "replay" in normalized or "vod" in normalized:
+        return 1
+    return 0
+
+
+def parse_duration_seconds(duration_text: str | None) -> int | None:
+    if not duration_text:
+        return None
+    cleaned = duration_text.strip().upper()
+    if cleaned == "SHORTS":
+        return 0
+    if not re.fullmatch(r"\d+(?::\d{2}){1,2}", cleaned):
+        return None
+    parts = [int(part) for part in cleaned.split(":")]
+    if len(parts) == 2:
+        minutes, seconds = parts
+        return minutes * 60 + seconds
+    if len(parts) == 3:
+        hours, minutes, seconds = parts
+        return hours * 3600 + minutes * 60 + seconds
+    return None
+
+
+def _contains_champion_name(segment: str, champion: Champion) -> bool:
+    candidates = {
+        champion.id,
+        champion.nameEn,
+        champion.nameJa,
+        *champion.aliases,
+    }
+    for name in candidates:
+        cleaned = name.strip()
+        if not cleaned:
+            continue
+        if cleaned.isascii():
+            pattern = rf"(?<![a-z0-9]){re.escape(cleaned.casefold())}(?![a-z0-9])"
+            if re.search(pattern, segment.casefold()):
+                return True
+        else:
+            if cleaned.casefold() in segment.casefold():
+                return True
+    return False
 
 
 def title_matches_matchup(
     title: str, player: Champion, opponent: Champion
 ) -> bool:
-    normalized = title.casefold()
-    player_names = {
-        player.id.casefold(),
-        player.nameEn.casefold(),
-        player.nameJa.casefold(),
-        *(alias.casefold() for alias in player.aliases),
-    }
-    opponent_names = {
-        opponent.id.casefold(),
-        opponent.nameEn.casefold(),
-        opponent.nameJa.casefold(),
-        *(alias.casefold() for alias in opponent.aliases),
-    }
-
-    vs_split = re.split(r"\bvs\.?\b|対", normalized, maxsplit=1)
-    if len(vs_split) == 2:
-        left_part, right_part = vs_split
-        has_player_left = any(name in left_part for name in player_names if name)
-        has_opponent_right = any(
-            name in right_part for name in opponent_names if name
-        )
-        if has_player_left and has_opponent_right:
-            return True
+    if EXCLUDED_VIDEO_PATTERN.search(title):
+        return False
+    if NON_TOP_LANE_PATTERN.search(title):
+        return False
+    if not TOP_LANE_PATTERN.search(title):
         return False
 
-    return any(name in normalized for name in player_names if name) and any(
-        name in normalized for name in opponent_names if name
+    vs_split = re.split(r"\bvs\.?\b|対", title, maxsplit=1, flags=re.IGNORECASE)
+    if len(vs_split) != 2:
+        return False
+
+    left_part, right_part = vs_split
+    return _contains_champion_name(left_part, player) and _contains_champion_name(
+        right_part, opponent
     )
+
+
+def score_candidate(item: dict[str, Any]) -> tuple[tuple[int, ...], int, int]:
+    patch_score = parse_patch_tuple(item.get("gamePatch"))
+    rank_score = extract_rank_tier_score(item.get("title", ""))
+    channel_score = extract_channel_trust_score(item.get("channelName", ""))
+    return (patch_score, rank_score, channel_score)
+
+
+def _extract_renderer_duration_text(renderer: dict[str, Any]) -> str | None:
+    length_text = renderer.get("lengthText", {})
+    if isinstance(length_text, dict):
+        if isinstance(length_text.get("simpleText"), str):
+            return length_text["simpleText"]
+        runs = length_text.get("runs")
+        if isinstance(runs, list) and runs:
+            joined = "".join(
+                run.get("text", "") for run in runs if isinstance(run, dict)
+            ).strip()
+            if joined:
+                return joined
+
+    overlays = renderer.get("thumbnailOverlays", [])
+    if isinstance(overlays, list):
+        for overlay in overlays:
+            if not isinstance(overlay, dict):
+                continue
+            status = overlay.get("thumbnailOverlayTimeStatusRenderer", {})
+            if not isinstance(status, dict):
+                continue
+            style = status.get("style")
+            if style == "SHORTS":
+                return "SHORTS"
+            text_obj = status.get("text", {})
+            if isinstance(text_obj, dict) and isinstance(
+                text_obj.get("simpleText"), str
+            ):
+                return text_obj["simpleText"]
+    return None
 
 
 def parse_youtube_initial_data(
@@ -94,7 +200,7 @@ def parse_youtube_initial_data(
     walk(data.get("contents", {}))
 
     now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-    results: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
     seen_video_ids: set[str] = set()
 
     for renderer in renderers:
@@ -103,6 +209,14 @@ def parse_youtube_initial_data(
             continue
         video_id = video_id.strip()
         if video_id in seen_video_ids:
+            continue
+
+        duration_text = _extract_renderer_duration_text(renderer)
+        duration_seconds = parse_duration_seconds(duration_text)
+        if (
+            duration_seconds is not None
+            and duration_seconds < MIN_REPLAY_DURATION_SECONDS
+        ):
             continue
 
         title_runs = renderer.get("title", {}).get("runs", [])
@@ -141,7 +255,7 @@ def parse_youtube_initial_data(
                 channel_url = f"https://www.youtube.com/channel/{browse_id.strip()}"
 
         seen_video_ids.add(video_id)
-        results.append(
+        candidates.append(
             {
                 "id": f"yt-{player.id.lower()}-vs-{opponent.id.lower()}-{video_id}",
                 "playerChampionId": player.id,
@@ -159,10 +273,9 @@ def parse_youtube_initial_data(
                 "origin": "youtube_search",
             }
         )
-        if len(results) >= max_results:
-            break
 
-    return results
+    candidates.sort(key=score_candidate, reverse=True)
+    return candidates[:max_results]
 
 
 def _search_via_data_api(
@@ -177,7 +290,8 @@ def _search_via_data_api(
             "part": "snippet",
             "type": "video",
             "videoEmbeddable": "true",
-            "maxResults": max(max_results * 2, 10),
+            "videoDuration": "medium",
+            "maxResults": max(max_results * 3, 15),
             "q": query,
             "key": api_key,
         }
@@ -187,7 +301,7 @@ def _search_via_data_api(
     payload = json.loads(_fetch_text(request_url))
 
     now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-    results: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
     for item in payload.get("items", []):
         video_id = item.get("id", {}).get("videoId")
         snippet = item.get("snippet", {})
@@ -204,7 +318,7 @@ def _search_via_data_api(
             else "https://www.youtube.com"
         )
         published_at = (snippet.get("publishedAt") or "").strip() or None
-        results.append(
+        candidates.append(
             {
                 "id": f"yt-{player.id.lower()}-vs-{opponent.id.lower()}-{video_id}",
                 "playerChampionId": player.id,
@@ -222,10 +336,13 @@ def _search_via_data_api(
                 "origin": "youtube_search",
             }
         )
-        if len(results) >= max_results:
-            break
 
-    return results
+    candidates.sort(key=score_candidate, reverse=True)
+    return candidates[:max_results]
+
+
+def build_search_query(player: Champion, opponent: Champion) -> str:
+    return f'"{player.nameEn} Top vs {opponent.nameEn}"'
 
 
 @lru_cache(maxsize=256)
@@ -241,7 +358,7 @@ def _cached_youtube_search(
     player = by_id[player_id]
     opponent = by_id[opponent_id]
 
-    query = f'"{player.nameEn} Top vs {opponent.nameEn}" Challenger Replays'
+    query = build_search_query(player, opponent)
     api_key = os.getenv("YOUTUBE_API_KEY", "").strip()
     if api_key:
         items = _search_via_data_api(api_key, query, player, opponent, max_results)
@@ -278,4 +395,3 @@ def search_youtube_matchup_candidates(
             exc_info=True,
         )
         return []
-

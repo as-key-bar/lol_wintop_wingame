@@ -332,3 +332,115 @@ def test_parse_youtube_initial_data_filters_by_ordered_matchup() -> None:
     assert parsed[0]["gamePatch"] == "26.22"
     assert parsed[0]["origin"] == "youtube_search"
 
+
+def test_parse_youtube_initial_data_filters_lane_duration_and_sorts_by_patch_and_rank() -> None:
+    _, champions = load_catalog()
+    by_id = {champion.id: champion for champion in champions}
+    aatrox = by_id["Aatrox"]
+    darius = by_id["Darius"]
+
+    def make_renderer(
+        video_id: str,
+        title: str,
+        duration: str = "28:15",
+        channel: str = "Challenger Replays",
+    ) -> dict:
+        return {
+            "videoRenderer": {
+                "videoId": video_id,
+                "lengthText": {"simpleText": duration},
+                "title": {"runs": [{"text": title}]},
+                "ownerText": {"runs": [{"text": channel}]},
+            }
+        }
+
+    fake_initial_data = {
+        "contents": {
+            "sectionListRenderer": {
+                "contents": [
+                    {
+                        "itemSectionRenderer": {
+                            "contents": [
+                                # Excluded: Mid lane instead of Top
+                                make_renderer(
+                                    "midLane1",
+                                    "Aatrox Mid vs Darius - KR Challenger Patch 26.22",
+                                ),
+                                # Excluded: Missing Top keyword
+                                make_renderer(
+                                    "noLane1",
+                                    "Aatrox vs Darius - KR Challenger Patch 26.22",
+                                ),
+                                # Excluded: Shorter than 10 minutes (clip/short)
+                                make_renderer(
+                                    "shortClip1",
+                                    "Aatrox Top vs Darius - KR Challenger Patch 26.22",
+                                    duration="3:45",
+                                ),
+                                # Excluded: Montage/Highlights
+                                make_renderer(
+                                    "montage1",
+                                    "Aatrox Top vs Darius Highlights - Patch 26.22",
+                                    duration="12:00",
+                                ),
+                                # Included (Rank #3: no patch)
+                                make_renderer(
+                                    "noPatchOld",
+                                    "Aatrox Top vs Darius - KR Challenger",
+                                    duration="25:00",
+                                ),
+                                # Included (Rank #2: Patch 26.21 Challenger)
+                                make_renderer(
+                                    "patch2621Chall",
+                                    "Aatrox Top vs Darius - KR Challenger Patch 26.21",
+                                    duration="26:30",
+                                ),
+                                # Included (Rank #2b: Patch 26.22 Master)
+                                make_renderer(
+                                    "patch2622Master",
+                                    "Aatrox Top vs Darius - KR Master Patch 26.22",
+                                    duration="29:10",
+                                ),
+                                # Included (Rank #1: Patch 26.22 Challenger)
+                                make_renderer(
+                                    "patch2622Chall",
+                                    "Aatrox Top vs Darius - KR Challenger Patch 26.22",
+                                    duration="31:00",
+                                ),
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+
+    html = f"<script>var ytInitialData = {json.dumps(fake_initial_data)};</script>"
+    parsed = youtube_search.parse_youtube_initial_data(
+        html_text=html,
+        player=aatrox,
+        opponent=darius,
+        source_url="https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+    )
+
+    assert [item["videoUrl"].split("v=")[1] for item in parsed] == [
+        "patch2622Chall",
+        "patch2622Master",
+        "patch2621Chall",
+        "noPatchOld",
+    ]
+
+
+def test_title_matches_matchup_uses_word_boundaries_for_short_champion_names() -> None:
+    _, champions = load_catalog()
+    by_id = {champion.id: champion for champion in champions}
+    vi = by_id["Vi"]
+    darius = by_id["Darius"]
+
+    assert not youtube_search.title_matches_matchup(
+        "Riven Top vs Darius - KR Challenger Patch 26.22", vi, darius
+    )
+    assert youtube_search.title_matches_matchup(
+        "Vi Top vs Darius - KR Challenger Patch 26.22", vi, darius
+    )
+
