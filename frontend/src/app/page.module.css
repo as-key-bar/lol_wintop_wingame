@@ -5,12 +5,31 @@
   padding: 48px 40px;
 }
 
+.matchupPage {
+  padding-top: 24px;
+  padding-bottom: 32px;
+}
+
 .header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   margin: 0 auto 32px;
+}
+
+.matchupHeader {
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.matchupHeader .eyebrow {
+  margin-bottom: 4px;
+}
+
+.matchupHeader h1 {
+  margin-bottom: 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
 }
 
 .eyebrow,
@@ -44,6 +63,99 @@
   color: #d3deec;
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid #344256;
+  border-radius: 999px;
+  color: #d3deec;
+  background: #111827;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.backLink:hover {
+  border-color: #76c7b7;
+  color: #eef2f8;
+}
+
+.backLink:focus-visible {
+  outline: 2px solid #76c7b7;
+  outline-offset: 2px;
+}
+
+.matchupBanner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.matchupFighter {
+  min-width: 0;
+  padding: 12px 18px;
+  border: 1px solid #2a3444;
+  border-radius: 14px;
+  background: #111827;
+}
+
+.matchupFighter .step {
+  margin-bottom: 4px;
+  color: var(--side-accent);
+}
+
+.fighterSummary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fighterSummary img {
+  border-radius: 8px;
+}
+
+.fighterSummary div {
+  display: grid;
+  gap: 2px;
+}
+
+.fighterSummary strong {
+  color: var(--side-accent-strong);
+  font-size: 1.05rem;
+}
+
+.fighterSummary span {
+  color: #aab8c8;
+  font-size: 0.8rem;
+}
+
+.versusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #344256;
+  border-radius: 999px;
+  color: #76c7b7;
+  background: #111827;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .matchupSelector {
@@ -297,11 +409,29 @@
 }
 
 .matchupNotice {
-  margin-top: 20px;
+  margin-top: 16px;
+}
+
+.matchupSectionHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .matchupHeading {
-  font-size: 1.2rem;
+  font-size: 1.15rem;
+}
+
+.videoCount {
+  padding: 4px 10px;
+  border: 1px solid #344256;
+  border-radius: 999px;
+  color: #aab8c8;
+  background: #0e1622;
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .versus {
@@ -317,36 +447,56 @@
   line-height: 1.6;
 }
 
-.videoList {
+.videoGrid {
   display: grid;
-  gap: 14px;
-  margin-top: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+  gap: 18px;
+  margin-top: 16px;
   padding: 0;
   list-style: none;
 }
 
-.videoCard {
+.videoEmbedCard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid #2a3444;
+  border-radius: 14px;
+  background: #0e1622;
+}
+
+.videoPlayerWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #070b11;
+}
+
+.videoPlayer {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.videoCardBody {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 16px 18px;
-  border: 1px solid #2a3444;
-  border-radius: 12px;
-  background: #0e1622;
+  gap: 14px;
+  padding: 14px 16px;
 }
 
 .videoInfo {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  flex: 1 1 320px;
+  flex: 1 1 280px;
 }
 
 .videoTitle {
   color: #eef2f8;
-  font-size: 1rem;
+  font-size: 0.95rem;
   line-height: 1.45;
 }
 
@@ -433,9 +583,14 @@
     padding: 32px 20px;
   }
 
-  .matchupSelector {
+  .matchupSelector,
+  .matchupBanner {
     grid-template-columns: minmax(0, 1fr);
     gap: 14px;
+  }
+
+  .versusBadge {
+    justify-self: center;
   }
 
   .searchAction {
