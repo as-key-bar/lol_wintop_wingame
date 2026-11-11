@@ -25,6 +25,7 @@ export type MatchupVideo = {
   verificationStatus: "verified";
   embedStatus: "unknown" | "allowed" | "disabled";
   sourceUrl: string;
+  origin?: "saved" | "youtube_search";
 };
 
 export type MatchupResponse = {

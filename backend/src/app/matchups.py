@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, urlparse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from app.champions import get_champion_ids
+from app.youtube_search import search_youtube_matchup_candidates
 
 logger = logging.getLogger(__name__)
 MATCHUPS_PATH = Path(__file__).parent / "data" / "matchups.json"
@@ -51,6 +52,7 @@ class MatchupVideo(BaseModel):
     verificationStatus: Literal["verified", "candidate"]
     embedStatus: Literal["unknown", "allowed", "disabled"]
     sourceUrl: str = Field(min_length=1)
+    origin: Literal["saved", "youtube_search"] = "saved"
 
     @field_validator("videoUrl")
     @classmethod
@@ -124,7 +126,9 @@ def load_matchups() -> tuple[MatchupVideo, ...]:
 
 
 def get_matchup_videos(
-    player_champion_id: str, opponent_champion_id: str
+    player_champion_id: str,
+    opponent_champion_id: str,
+    include_candidates: bool = False,
 ) -> list[MatchupVideo]:
     valid_champion_ids = get_champion_ids()
 
@@ -137,11 +141,38 @@ def get_matchup_videos(
         )
 
     videos = load_matchups()
-    return [
+    saved_videos = [
         video
         for video in videos
         if video.playerChampionId == player_champion_id
         and video.opponentChampionId == opponent_champion_id
         and video.verificationStatus == "verified"
     ]
+
+    if saved_videos and not include_candidates:
+        return saved_videos
+
+    if len(saved_videos) >= 5:
+        return saved_videos
+
+    seen_urls = {video.videoUrl for video in saved_videos}
+    candidates = search_youtube_matchup_candidates(
+        player_champion_id=player_champion_id,
+        opponent_champion_id=opponent_champion_id,
+        max_results=5,
+    )
+    combined = list(saved_videos)
+    for raw_candidate in candidates:
+        try:
+            candidate_video = MatchupVideo.model_validate(raw_candidate)
+        except ValidationError:
+            continue
+        if candidate_video.videoUrl in seen_urls:
+            continue
+        seen_urls.add(candidate_video.videoUrl)
+        combined.append(candidate_video)
+        if len(combined) >= 5:
+            break
+
+    return combined
 

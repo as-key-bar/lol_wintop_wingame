@@ -27,7 +27,10 @@ function MatchupContent() {
   const [playerChampion, setPlayerChampion] = useState<Champion | null>(null);
   const [opponentChampion, setOpponentChampion] = useState<Champion | null>(null);
   const [matchupVideos, setMatchupVideos] = useState<MatchupVideo[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [searchedCandidates, setSearchedCandidates] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -41,6 +44,8 @@ function MatchupContent() {
       setLoading(true);
       setError("");
       setMatchupVideos([]);
+      setSelectedVideoId(null);
+      setSearchedCandidates(false);
 
       try {
         const championsUrl = new URL("/api/v1/champions", apiBaseUrl);
@@ -85,6 +90,13 @@ function MatchupContent() {
 
         const matchupData = (await matchupResponse.json()) as MatchupResponse;
         setMatchupVideos(matchupData.items);
+        setSelectedVideoId(matchupData.items[0]?.id ?? null);
+        if (
+          matchupData.items.length === 0 ||
+          matchupData.items.some((item) => item.origin === "youtube_search")
+        ) {
+          setSearchedCandidates(true);
+        }
       } catch (requestError) {
         if (
           requestError instanceof Error &&
@@ -113,6 +125,39 @@ function MatchupContent() {
 
   const playerDisplayName = playerChampion?.nameJa ?? playerChampionId;
   const opponentDisplayName = opponentChampion?.nameJa ?? opponentChampionId;
+  const activeVideo =
+    matchupVideos.find((video) => video.id === selectedVideoId) ??
+    matchupVideos[0] ??
+    null;
+  const activeEmbedUrl =
+    activeVideo && activeVideo.embedStatus !== "disabled"
+      ? getYouTubeEmbedUrl(activeVideo.videoUrl)
+      : null;
+
+  async function handleLoadMoreCandidates() {
+    if (!playerChampionId || !opponentChampionId || loadingCandidates) {
+      return;
+    }
+    setLoadingCandidates(true);
+    try {
+      const matchupUrl = new URL(
+        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}`,
+        apiBaseUrl,
+      );
+      matchupUrl.searchParams.set("includeCandidates", "true");
+      const response = await fetch(matchupUrl);
+      if (response.ok) {
+        const data = (await response.json()) as MatchupResponse;
+        setMatchupVideos(data.items);
+        if (!selectedVideoId && data.items[0]) {
+          setSelectedVideoId(data.items[0].id);
+        }
+      }
+    } finally {
+      setSearchedCandidates(true);
+      setLoadingCandidates(false);
+    }
+  }
 
   return (
     <>
@@ -153,6 +198,20 @@ function MatchupContent() {
         </h1>
 
         <div className={styles.matchupBarRight}>
+          {!loading &&
+            !error &&
+            !searchedCandidates &&
+            matchupVideos.length > 0 &&
+            matchupVideos.length < 5 && (
+              <button
+                type="button"
+                className={styles.loadCandidatesButton}
+                disabled={loadingCandidates}
+                onClick={handleLoadMoreCandidates}
+              >
+                {loadingCandidates ? "候補を検索中..." : "+ YouTube候補を検索"}
+              </button>
+            )}
           {!loading && !error && (
             <span className={styles.videoCount}>
               全 {matchupVideos.length} 件
@@ -182,89 +241,145 @@ function MatchupContent() {
           </p>
         )}
 
-        {!loading && !error && matchupVideos.length > 0 && (
-          <ul className={styles.videoGrid}>
-            {matchupVideos.map((video) => {
-              const embedUrl =
-                video.embedStatus === "disabled"
-                  ? null
-                  : getYouTubeEmbedUrl(video.videoUrl);
-
-              return (
-                <li className={styles.videoEmbedCard} key={video.id}>
-                  {embedUrl && (
-                    <div className={styles.videoPlayerWrapper}>
-                      <iframe
-                        className={styles.videoPlayer}
-                        src={embedUrl}
-                        title={video.title}
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        allowFullScreen
-                      />
-                    </div>
-                  )}
-
-                  <div className={styles.videoCardBody}>
-                    <div className={styles.videoInfo}>
-                      <h2 className={styles.videoTitle}>{video.title}</h2>
-                      <dl className={styles.videoMeta}>
-                        <div>
-                          <dt>チャンネル</dt>
-                          <dd>
-                            <a
-                              href={video.channelUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {video.channelName}（外部サイト）
-                            </a>
-                          </dd>
-                        </div>
-                        {video.gamePatch && (
-                          <div>
-                            <dt>パッチ</dt>
-                            <dd>{video.gamePatch}</dd>
-                          </div>
-                        )}
-                        {video.publishedAt && (
-                          <div>
-                            <dt>公開日</dt>
-                            <dd>{formatIsoDate(video.publishedAt)}</dd>
-                          </div>
-                        )}
-                        <div>
-                          <dt>確認日</dt>
-                          <dd>{formatIsoDate(video.verifiedAt)}</dd>
-                        </div>
-                        <div>
-                          <dt>出典</dt>
-                          <dd>
-                            <a
-                              href={video.sourceUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              確認元ページ（外部サイト）
-                            </a>
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                    <a
-                      className={styles.videoLink}
-                      href={video.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+        {!loading && !error && activeVideo && (
+          <>
+            {matchupVideos.length > 1 && (
+              <div
+                className={styles.videoSelector}
+                role="tablist"
+                aria-label="マッチアップ動画の切り替え"
+              >
+                {matchupVideos.map((video, index) => {
+                  const isSelected = video.id === activeVideo.id;
+                  const isYouTubeCandidate = video.origin === "youtube_search";
+                  return (
+                    <button
+                      key={video.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isSelected}
+                      className={`${styles.videoSelectorOption} ${
+                        isSelected ? styles.videoSelectorOptionActive : ""
+                      }`}
+                      onClick={() => setSelectedVideoId(video.id)}
+                      title={video.title}
                     >
-                      YouTubeで視聴（外部サイト・新しいタブ）
-                    </a>
+                      <span className={styles.videoSelectorIndex}>
+                        動画 {index + 1}
+                      </span>
+                      {video.gamePatch && (
+                        <span className={styles.videoSelectorPatch}>
+                          Patch {video.gamePatch}
+                        </span>
+                      )}
+                      <span
+                        className={`${styles.videoOriginBadge} ${
+                          isYouTubeCandidate
+                            ? styles.originCandidate
+                            : styles.originSaved
+                        }`}
+                      >
+                        {isYouTubeCandidate ? "YouTube候補" : "登録済"}
+                      </span>
+                      <span className={styles.videoSelectorTitle}>
+                        {video.title}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            <article
+              className={`${styles.videoEmbedCard} ${
+                matchupVideos.length > 1 ? styles.videoEmbedCardWithSelector : ""
+              }`}
+            >
+              {activeEmbedUrl && (
+                <div className={styles.videoPlayerWrapper}>
+                  <iframe
+                    key={activeVideo.id}
+                    className={styles.videoPlayer}
+                    src={activeEmbedUrl}
+                    title={activeVideo.title}
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+              )}
+
+              <div className={styles.videoCardBody}>
+                <div className={styles.videoInfo}>
+                  <div className={styles.videoTitleRow}>
+                    <span
+                      className={`${styles.videoOriginBadge} ${
+                        activeVideo.origin === "youtube_search"
+                          ? styles.originCandidate
+                          : styles.originSaved
+                      }`}
+                    >
+                      {activeVideo.origin === "youtube_search"
+                        ? "YouTube候補"
+                        : "登録済"}
+                    </span>
+                    <h2 className={styles.videoTitle}>{activeVideo.title}</h2>
                   </div>
-                </li>
-              );
-            })}
-          </ul>
+                  <dl className={styles.videoMeta}>
+                    <div>
+                      <dt>チャンネル</dt>
+                      <dd>
+                        <a
+                          href={activeVideo.channelUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {activeVideo.channelName}（外部サイト）
+                        </a>
+                      </dd>
+                    </div>
+                    {activeVideo.gamePatch && (
+                      <div>
+                        <dt>パッチ</dt>
+                        <dd>{activeVideo.gamePatch}</dd>
+                      </div>
+                    )}
+                    {activeVideo.publishedAt && (
+                      <div>
+                        <dt>公開日</dt>
+                        <dd>{formatIsoDate(activeVideo.publishedAt)}</dd>
+                      </div>
+                    )}
+                    <div>
+                      <dt>確認日</dt>
+                      <dd>{formatIsoDate(activeVideo.verifiedAt)}</dd>
+                    </div>
+                    <div>
+                      <dt>出典</dt>
+                      <dd>
+                        <a
+                          href={activeVideo.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          確認元ページ（外部サイト）
+                        </a>
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+                <a
+                  className={styles.videoLink}
+                  href={activeVideo.videoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  YouTubeで視聴（外部サイト・新しいタブ）
+                </a>
+              </div>
+            </article>
+          </>
         )}
       </section>
     </>

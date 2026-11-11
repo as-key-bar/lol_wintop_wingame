@@ -408,6 +408,31 @@
   font-weight: 600;
 }
 
+.loadCandidatesButton {
+  padding: 4px 10px;
+  border: 1px solid #355886;
+  border-radius: 999px;
+  color: #91c5ff;
+  background: #14263d;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.loadCandidatesButton:hover:not(:disabled) {
+  border-color: #65aaff;
+  background: #1a3352;
+}
+
+.loadCandidatesButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .noticeText {
   margin-top: 12px;
   color: #aab8c8;
@@ -415,13 +440,86 @@
   line-height: 1.6;
 }
 
-.videoGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.videoSelector {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+}
+
+.videoSelectorOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 340px;
+  padding: 6px 12px;
+  border: 1px solid #2a3444;
+  border-radius: 10px;
+  color: #c4ccd8;
+  background: #111827;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.videoSelectorOption:hover {
+  border-color: #49607c;
+  color: #eef2f8;
+}
+
+.videoSelectorOptionActive {
+  border-color: #76c7b7;
+  color: #eef2f8;
+  background: #162629;
+}
+
+.videoSelectorOption:focus-visible {
+  outline: 2px solid #76c7b7;
+  outline-offset: 2px;
+}
+
+.videoSelectorIndex {
+  font-weight: 700;
+}
+
+.videoSelectorPatch {
+  color: #8fe0ce;
+  font-weight: 600;
+}
+
+.videoSelectorTitle {
+  overflow: hidden;
+  color: #8190a3;
+  text-overflow: ellipsis;
+}
+
+.videoOriginBadge {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.originSaved {
+  border: 1px solid #2e6d61;
+  color: #8fe0ce;
+  background: #132b28;
+}
+
+.originCandidate {
+  border: 1px solid #355886;
+  color: #91c5ff;
+  background: #14263d;
 }
 
 .videoEmbedCard {
@@ -434,6 +532,10 @@
   border: 1px solid #2a3444;
   border-radius: 14px;
   background: #0e1622;
+}
+
+.videoEmbedCardWithSelector {
+  max-width: calc((100vh - 138px) * 16 / 9);
 }
 
 .videoPlayerWrapper {
@@ -463,6 +565,13 @@
   gap: 6px;
   min-width: 0;
   flex: 1 1 280px;
+}
+
+.videoTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .videoTitle {

@@ -84,9 +84,14 @@ def get_champions(
 def get_matchup(
     playerChampionId: str,
     opponentChampionId: str,
+    includeCandidates: bool = Query(default=False),
 ) -> MatchupResponse:
     try:
-        items = get_matchup_videos(playerChampionId, opponentChampionId)
+        items = get_matchup_videos(
+            playerChampionId,
+            opponentChampionId,
+            include_candidates=includeCandidates,
+        )
     except UnknownChampionError as error:
         raise HTTPException(
             status_code=404,
