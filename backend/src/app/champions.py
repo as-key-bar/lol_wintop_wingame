@@ -37,6 +37,12 @@ def load_catalog() -> tuple[str, tuple[Champion, ...]]:
     return version, champions
 
 
+@lru_cache(maxsize=1)
+def get_champion_ids() -> frozenset[str]:
+    _, champions = load_catalog()
+    return frozenset(champion.id for champion in champions)
+
+
 def search_champions(query: str | None = None) -> tuple[str, list[Champion]]:
     version, champions = load_catalog()
     normalized_query = unicodedata.normalize("NFKC", query or "").strip().casefold()

@@ -152,8 +152,7 @@
   gap: 16px;
 }
 
-.picker,
-.matchupNotice {
+.picker {
   min-width: 0;
   padding: 24px;
   border: 1px solid #2a3444;
@@ -581,8 +580,7 @@
     margin-top: 16px;
   }
 
-  .picker,
-  .matchupNotice {
+  .picker {
     padding: 18px;
   }
 }

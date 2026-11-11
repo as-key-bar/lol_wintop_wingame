@@ -1,19 +1,4 @@
-import asyncio
-
-import httpx
-
-from app.main import app
-
-
-def get(path: str) -> httpx.Response:
-    async def request() -> httpx.Response:
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(
-            transport=transport, base_url="http://test"
-        ) as client:
-            return await client.get(path)
-
-    return asyncio.run(request())
+from conftest import api_get as get
 
 
 def test_champion_list_includes_version_and_catalog() -> None:

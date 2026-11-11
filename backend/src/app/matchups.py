@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from app.champions import load_catalog
+from app.champions import get_champion_ids
 
 logger = logging.getLogger(__name__)
 MATCHUPS_PATH = Path(__file__).parent / "data" / "matchups.json"
@@ -87,8 +87,7 @@ class MatchupVideo(BaseModel):
 
 @lru_cache(maxsize=1)
 def load_matchups() -> tuple[MatchupVideo, ...]:
-    _, champions = load_catalog()
-    valid_champion_ids = {champion.id for champion in champions}
+    valid_champion_ids = get_champion_ids()
 
     try:
         payload = json.loads(MATCHUPS_PATH.read_text(encoding="utf-8"))
@@ -127,8 +126,7 @@ def load_matchups() -> tuple[MatchupVideo, ...]:
 def get_matchup_videos(
     player_champion_id: str, opponent_champion_id: str
 ) -> list[MatchupVideo]:
-    _, champions = load_catalog()
-    valid_champion_ids = {champion.id for champion in champions}
+    valid_champion_ids = get_champion_ids()
 
     if (
         player_champion_id not in valid_champion_ids

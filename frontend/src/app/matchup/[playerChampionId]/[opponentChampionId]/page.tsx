@@ -4,63 +4,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import styles from "../../../page.module.css";
-
-type Champion = {
-  id: string;
-  nameJa: string;
-  nameEn: string;
-  aliases: string[];
-  imageUrl: string;
-};
-
-type ChampionResponse = {
-  dataDragonVersion: string;
-  items: Champion[];
-};
-
-type MatchupVideo = {
-  id: string;
-  playerChampionId: string;
-  opponentChampionId: string;
-  title: string;
-  videoUrl: string;
-  channelName: string;
-  channelUrl: string;
-  publishedAt: string | null;
-  gamePatch: string | null;
-  verifiedAt: string;
-  verificationStatus: "verified";
-  embedStatus: "unknown" | "allowed" | "disabled";
-  sourceUrl: string;
-};
-
-type MatchupResponse = {
-  playerChampionId: string;
-  opponentChampionId: string;
-  items: MatchupVideo[];
-};
-
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
-
-function formatIsoDate(value: string): string {
-  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());
-  return match ? match[1] : value;
-}
-
-function getYouTubeEmbedUrl(videoUrl: string): string | null {
-  try {
-    const parsed = new URL(videoUrl);
-    const videoId = parsed.searchParams.get("v")?.trim();
-    if (!videoId) {
-      return null;
-    }
-    return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
-  } catch {
-    return null;
-  }
-}
+import { RiotFooter } from "@/components/RiotFooter";
+import {
+  apiBaseUrl,
+  formatIsoDate,
+  getYouTubeEmbedUrl,
+  type Champion,
+  type ChampionResponse,
+  type MatchupResponse,
+  type MatchupVideo,
+} from "@/lib/api";
+import styles from "@/app/page.module.css";
 
 function MatchupContent() {
   const params = useParams<{
@@ -334,25 +288,7 @@ export default function MatchupPage() {
         <MatchupContent />
       </Suspense>
 
-      <footer className={styles.footer}>
-        <p>
-          チャンピオン情報:{" "}
-          <a
-            href="https://developer.riotgames.com/docs/lol#data-dragon"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Riot Games Data Dragon
-          </a>
-        </p>
-        <p className={styles.legal}>
-          wintop-wingame is not endorsed by Riot Games and does not reflect the
-          views or opinions of Riot Games or anyone officially involved in
-          producing or managing Riot Games properties. Riot Games and all
-          associated properties are trademarks or registered trademarks of
-          Riot Games, Inc.
-        </p>
-      </footer>
+      <RiotFooter />
     </main>
   );
 }

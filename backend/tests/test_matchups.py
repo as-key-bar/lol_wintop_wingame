@@ -1,23 +1,10 @@
-import asyncio
 import json
 from pathlib import Path
 
-import httpx
 import pytest
 
 from app import matchups
-from app.main import app
-
-
-def get(path: str) -> httpx.Response:
-    async def request() -> httpx.Response:
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(
-            transport=transport, base_url="http://test"
-        ) as client:
-            return await client.get(path)
-
-    return asyncio.run(request())
+from conftest import api_get as get
 
 
 @pytest.fixture(autouse=True)

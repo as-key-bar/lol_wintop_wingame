@@ -3,20 +3,9 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { RiotFooter } from "@/components/RiotFooter";
+import { apiBaseUrl, type Champion, type ChampionResponse } from "@/lib/api";
 import styles from "./page.module.css";
-
-type Champion = {
-  id: string;
-  nameJa: string;
-  nameEn: string;
-  aliases: string[];
-  imageUrl: string;
-};
-
-type ChampionResponse = {
-  dataDragonVersion: string;
-  items: Champion[];
-};
 
 type ChampionPickerProps = {
   id: string;
@@ -25,9 +14,6 @@ type ChampionPickerProps = {
   selected: Champion | null;
   onSelect: (champion: Champion | null) => void;
 };
-
-const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 function ChampionPicker({
   id,
@@ -238,25 +224,7 @@ export default function Home() {
         />
       </div>
 
-      <footer className={styles.footer}>
-        <p>
-          チャンピオン情報:{" "}
-          <a
-            href="https://developer.riotgames.com/docs/lol#data-dragon"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Riot Games Data Dragon
-          </a>
-        </p>
-        <p className={styles.legal}>
-          wintop-wingame is not endorsed by Riot Games and does not reflect the
-          views or opinions of Riot Games or anyone officially involved in
-          producing or managing Riot Games properties. Riot Games and all
-          associated properties are trademarks or registered trademarks of
-          Riot Games, Inc.
-        </p>
-      </footer>
+      <RiotFooter />
     </main>
   );
 }
