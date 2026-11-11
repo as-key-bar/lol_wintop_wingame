@@ -24,3 +24,14 @@ CREATE TABLE IF NOT EXISTS matchup_video_votes (
     INDEX idx_vote_video (video_record_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS matchup_video_metadata (
+    video_record_id VARCHAR(191) NOT NULL PRIMARY KEY,
+    analysis_status VARCHAR(32) NOT NULL DEFAULT 'unanalyzed',
+    runes_json TEXT NULL,
+    summoner_spells_json TEXT NULL,
+    starting_items_json TEXT NULL,
+    timestamps_json TEXT NULL,
+    updated_at VARCHAR(64) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+

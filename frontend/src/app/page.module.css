@@ -698,6 +698,340 @@
   background: #9be4d5;
 }
 
+.analysisPanel {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border-top: 1px solid #222d3d;
+  background: #0b111b;
+}
+
+.analysisHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.analysisTitleGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.analysisTitle {
+  margin: 0;
+  color: #eef2f8;
+  font-size: 0.95rem;
+}
+
+.analysisActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.analysisGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.analysisSideColumn {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.analysisCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #232f40;
+  border-radius: 12px;
+  background: #101826;
+}
+
+.analysisCardHeading {
+  margin: 0;
+  color: #dbe4f0;
+  font-size: 0.85rem;
+}
+
+.runeTreesContainer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.runeTreeColumn {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.runeStyleHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #232f40;
+  color: #eef2f8;
+  font-size: 0.84rem;
+}
+
+.runeStyleSub {
+  color: #8190a3;
+  font-size: 0.75rem;
+}
+
+.runeTreeRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+  gap: 6px;
+}
+
+.runeNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.runeNodeActive {
+  border-color: #c89b3c;
+  background: rgba(200, 155, 60, 0.14);
+  color: #f4e6c6;
+}
+
+.runeNodeInactive {
+  opacity: 0.28;
+  filter: grayscale(90%);
+  color: #7c899b;
+}
+
+.runeNodeLabel {
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.shardsBlock {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed #253244;
+}
+
+.shardsHeading {
+  color: #8fa0b5;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.LoadoutRow {
+  display: grid;
+  gap: 12px;
+}
+
+.loadoutGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.loadoutLabel {
+  color: #8fa0b5;
+  font-size: 0.76rem;
+}
+
+.assetChipList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assetBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  border: 1px solid #2e3d52;
+  border-radius: 8px;
+  background: #162133;
+  color: #e2e9f3;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.timelineHeaderRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.filterKillButton {
+  padding: 4px 10px;
+  border: 1px solid #4e2a35;
+  border-radius: 999px;
+  background: #23141b;
+  color: #f3a6b8;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.filterKillButtonActive {
+  border-color: #e85d75;
+  background: #e85d75;
+  color: #16090d;
+}
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.timestampChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #243246;
+  border-radius: 8px;
+  background: #131c2b;
+  color: #ccd6e4;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.79rem;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.timestampChip:hover {
+  border-color: #4f6c92;
+  background: #19263a;
+}
+
+.timestampChipKill {
+  border-color: #5b2b38;
+  background: #22131a;
+}
+
+.timestampChipKill:hover {
+  border-color: #9e3f56;
+  background: #2c1721;
+}
+
+.timestampTime {
+  flex: 0 0 auto;
+  color: #8fe0ce;
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
+}
+
+.killTag {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #d94b64;
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.timestampLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyAnalysisNote {
+  margin: 0;
+  color: #8190a3;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.emptyInlineNote {
+  color: #728196;
+  font-size: 0.78rem;
+}
+
+.metadataEditor {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid #355886;
+  border-radius: 12px;
+  background: #101b2b;
+}
+
+.editorSection {
+  display: grid;
+  gap: 8px;
+}
+
+.editorSection h4 {
+  margin: 0;
+  color: #91c5ff;
+  font-size: 0.82rem;
+}
+
+.styleOptionRow,
+.runeSlotRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assetChoiceButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid #2a394f;
+  border-radius: 8px;
+  background: #152030;
+  color: #b8c4d4;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+}
+
+.assetChoiceActive {
+  border-color: #f6c873;
+  background: rgba(246, 200, 115, 0.16);
+  color: #fff3d6;
+  font-weight: 700;
+}
+
+.editorFooter {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 960px) {
+  .analysisGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .footer {
   margin-top: 28px;
   color: #8190a3;

@@ -2,7 +2,7 @@ import hashlib
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import Integer, String, UniqueConstraint, create_engine, Index
+from sqlalchemy import Integer, String, Text, UniqueConstraint, create_engine, Index
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -53,6 +53,20 @@ class MatchupVideoVoteRecord(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     video_record_id: Mapped[str] = mapped_column(String(191), nullable=False)
     voter_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class MatchupVideoMetadataRecord(Base):
+    __tablename__ = "matchup_video_metadata"
+
+    video_record_id: Mapped[str] = mapped_column(String(191), primary_key=True)
+    analysis_status: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="unanalyzed"
+    )
+    runes_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    summoner_spells_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    starting_items_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    timestamps_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 _engine: Engine | None = None

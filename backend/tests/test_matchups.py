@@ -4,9 +4,9 @@ from pathlib import Path
 import pytest
 from sqlalchemy import create_engine
 
-from app import database, matchups, youtube_search
+from app import database, matchups, video_analysis, youtube_search
 from app.champions import load_catalog
-from conftest import api_get as get, api_post as post
+from conftest import api_get as get, api_post as post, api_put as put
 
 
 @pytest.fixture(autouse=True)
@@ -18,6 +18,11 @@ def clear_matchup_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     youtube_search._cached_youtube_search.cache_clear()
     monkeypatch.setattr(
         matchups, "search_youtube_matchup_candidates", lambda *args, **kwargs: []
+    )
+    monkeypatch.setattr(
+        matchups,
+        "fetch_and_analyze_youtube_video",
+        lambda *args, **kwargs: video_analysis.VideoMetadataAnalysis(),
     )
     yield
     engine.dispose()
@@ -598,3 +603,159 @@ def test_upvote_rejects_mismatched_title_for_matchup() -> None:
     assert response.json()["detail"]["code"] == "invalid_upvote"
 
 
+def test_parse_youtube_description_metadata_extracts_runes_spells_and_kill_timestamps() -> None:
+    sample_description = """
+#Singed #Top #Grandmaster
+Singed Top vs Tahm Kench — 8/5/14 (WIN) | KR Grandmaster 1510 LP
+Skin: Astronaut Singed | Spells: Ignite Flash
+Runes: Precision - Conqueror, Triumph, Legend: Alacrity, Last Stand | Sorcery - Nimbus Cloak, Celerity | Shards - Adaptive Force, Adaptive Force, Health
+
+Timeline:
+0:00 Game Start
+03:02 Singed catches Tahm Kench
+05:03 Red takes 1st Dragon (Cloud)
+06:06 Singed outduels Tahm Kench again
+29:56 Victory
+"""
+    analysis = video_analysis.parse_youtube_description_metadata(sample_description)
+
+    assert analysis.analysisStatus == "auto_parsed"
+    assert analysis.summonerSpells == ["SummonerDot", "SummonerFlash"]
+    assert analysis.runes is not None
+    assert analysis.runes.primaryStyleId == 8000  # Precision
+    assert analysis.runes.subStyleId == 8200  # Sorcery
+    assert analysis.runes.primarySelections == [8010, 9111, 9104, 8299]
+    assert analysis.runes.subSelections == [8275, 8234]
+    assert len(analysis.runes.statShards) == 3
+
+    assert len(analysis.timestamps) == 5
+    kill_events = [ts for ts in analysis.timestamps if ts.isKillEvent]
+    assert [ts.timeSeconds for ts in kill_events] == [182, 366]
+
+
+def test_extract_description_with_embedded_semicolons_and_compact_format() -> None:
+    # Simulate a YouTube player response containing ";}" inside JSON string values
+    # and the compact "| Grasp of the Undying + Precision | Ignite Flash" format
+    # seen in Tahm Kench vs Gwen.
+    fake_player_response = {
+        "responseContext": {"nested": "value;}with_semicolon_brace"},
+        "videoDetails": {
+            "shortDescription": (
+                "#TahmKench #Top #Master\n"
+                "Tahm Kench Top vs Gwen — 12/1/9 (WIN) | KR Master 437 LP\n"
+                "Skin: Tahm Kench | Grasp of the Undying + Precision | Ignite Flash\n"
+                "Build: Dusk and Dawn, Randuin's Omen, Heartsteel\n\n"
+                "Timeline:\n"
+                "00:00 Game Start\n"
+                "02:26 First Blood — Tahm Kench kills Gwen\n"
+            )
+        },
+    }
+    html = (
+        "<script>var ytInitialPlayerResponse = "
+        + json.dumps(fake_player_response)
+        + ";var other = 1;</script>"
+    )
+    extracted = video_analysis.extract_description_from_watch_html(html)
+    assert "Grasp of the Undying" in extracted
+
+    parsed = video_analysis.parse_youtube_description_metadata(extracted)
+    assert parsed.analysisStatus == "auto_parsed"
+    assert parsed.summonerSpells == ["SummonerDot", "SummonerFlash"]
+    assert parsed.runes is not None
+    assert parsed.runes.primaryStyleId == 8400  # Resolve
+    assert parsed.runes.subStyleId == 8000  # Precision
+    assert parsed.runes.primarySelections == [8437]  # Grasp of the Undying
+    assert len(parsed.timestamps) == 2
+    assert parsed.timestamps[1].isKillEvent is True
+
+
+def test_game_assets_and_manual_metadata_persistence() -> None:
+    assets_response = get("/api/v1/game-assets")
+    assert assets_response.status_code == 200
+    assets_data = assets_response.json()
+    assert len(assets_data["runeStyles"]) == 5
+    assert len(assets_data["summonerSpells"]) >= 8
+    assert len(assets_data["starterItems"]) >= 10
+
+    video_payload = {
+        "id": "yt-aatrox-vs-darius-meta1",
+        "playerChampionId": "Aatrox",
+        "opponentChampionId": "Darius",
+        "title": "Aatrox Top vs Darius - KR Challenger Patch 26.22",
+        "videoUrl": "https://www.youtube.com/watch?v=meta1",
+        "channelName": "Challenger Replays",
+        "channelUrl": "https://www.youtube.com/@ChallengerReplays",
+        "publishedAt": None,
+        "gamePatch": "26.22",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+        "origin": "youtube_search",
+    }
+    metadata_payload = {
+        "analysisStatus": "manual_verified",
+        "runes": {
+            "primaryStyleId": 8000,
+            "subStyleId": 8400,
+            "primarySelections": [8010, 9111, 9104, 8299],
+            "subSelections": [8473, 8451],
+            "statShards": [5008, 5008, 5001],
+        },
+        "summonerSpells": ["SummonerFlash", "SummonerTeleport"],
+        "startingItems": ["1054", "2003"],
+        "timestamps": [
+            {
+                "timeSeconds": 195,
+                "timeLabel": "03:15",
+                "label": "Aatrox Solo Kill",
+                "isKillEvent": True,
+            }
+        ],
+    }
+
+    put_response = put(
+        "/api/v1/matchups/Aatrox/Darius/metadata",
+        {"video": video_payload, "metadata": metadata_payload},
+    )
+    assert put_response.status_code == 200
+    assert put_response.json()["analysisStatus"] == "manual_verified"
+
+    get_response = get("/api/v1/matchups/Aatrox/Darius")
+    assert get_response.status_code == 200
+    items = get_response.json()["items"]
+    assert len(items) == 1
+    saved_meta = items[0]["metadata"]
+    assert saved_meta["analysisStatus"] == "manual_verified"
+    assert saved_meta["startingItems"] == ["1054", "2003"]
+    assert saved_meta["summonerSpells"] == ["SummonerFlash", "SummonerTeleport"]
+    assert saved_meta["timestamps"][0]["timeSeconds"] == 195
+
+
+
+
+
+def test_sorcery_keystones_match_current_catalog_and_legacy_alias() -> None:
+    assets = video_analysis.load_game_assets()
+    sorcery = next(style for style in assets["runeStyles"] if style["id"] == 8200)
+    keystone_names = [rune["nameJa"] for rune in sorcery["slots"][0]["runes"]]
+    assert keystone_names == ["エアリー召喚", "秘儀の彗星", "嵐乗りの勇躍", "死神の残り火"]
+
+    current = video_analysis.parse_youtube_description_metadata(
+        "Runes: Sorcery - Deathfire Touch, Manaflow Band, Transcendence, Scorch "
+        "| Precision - Triumph, Legend: Haste | Shards - Adaptive Force, Adaptive Force, Health"
+    )
+    assert current.runes is not None
+    assert current.runes.primaryStyleId == 8200
+    assert current.runes.primarySelections == [8992, 8226, 8210, 8237]
+
+    surge = video_analysis.parse_youtube_description_metadata(
+        "Runes: Sorcery - Stormraider's Surge, Nimbus Cloak, Celerity, Gathering Storm"
+    )
+    legacy = video_analysis.parse_youtube_description_metadata(
+        "Runes: Sorcery - Phase Rush, Nimbus Cloak, Celerity, Gathering Storm"
+    )
+    assert surge.runes is not None and legacy.runes is not None
+    assert surge.runes.primarySelections[0] == 8230
+    assert legacy.runes.primarySelections[0] == 8230

@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -15,9 +15,16 @@ from sqlalchemy.orm import Session
 from app.champions import get_champion_ids, load_catalog
 from app.database import (
     Base,
+    MatchupVideoMetadataRecord,
     MatchupVideoRecord,
     MatchupVideoVoteRecord,
     get_engine,
+)
+from app.video_analysis import (
+    RuneSelection,
+    VideoMetadataAnalysis,
+    VideoTimestamp,
+    fetch_and_analyze_youtube_video,
 )
 from app.youtube_search import (
     extract_rank_tier_score,
@@ -74,6 +81,7 @@ class MatchupVideo(BaseModel):
     origin: Literal["saved", "youtube_search"] = "saved"
     upvoteCount: int = Field(default=0, ge=0)
     upvotedByViewer: bool = False
+    metadata: VideoMetadataAnalysis | None = None
 
     @field_validator("videoUrl")
     @classmethod
@@ -188,8 +196,93 @@ def ensure_database_seeded(engine: Engine, seed_videos: tuple[MatchupVideo, ...]
     _seeded_engines.add(engine_id)
 
 
+def _metadata_record_to_model(
+    meta_record: MatchupVideoMetadataRecord | None,
+) -> VideoMetadataAnalysis | None:
+    if meta_record is None:
+        return None
+    try:
+        runes = (
+            RuneSelection.model_validate(json.loads(meta_record.runes_json))
+            if meta_record.runes_json
+            else None
+        )
+        spells = (
+            json.loads(meta_record.summoner_spells_json)
+            if meta_record.summoner_spells_json
+            else []
+        )
+        items = (
+            json.loads(meta_record.starting_items_json)
+            if meta_record.starting_items_json
+            else []
+        )
+        timestamps = (
+            [
+                VideoTimestamp.model_validate(ts)
+                for ts in json.loads(meta_record.timestamps_json)
+            ]
+            if meta_record.timestamps_json
+            else []
+        )
+        status: Literal["unanalyzed", "auto_parsed", "manual_verified"] = (
+            meta_record.analysis_status
+            if meta_record.analysis_status
+            in ("unanalyzed", "auto_parsed", "manual_verified")
+            else "auto_parsed"
+        )
+        return VideoMetadataAnalysis(
+            analysisStatus=status,
+            runes=runes,
+            summonerSpells=spells,
+            startingItems=items,
+            timestamps=timestamps,
+        )
+    except Exception:
+        logger.warning(
+            "Failed to deserialize metadata for video %s", meta_record.video_record_id
+        )
+        return None
+
+
+def _upsert_metadata_record(
+    session: Session,
+    video_record_id: str,
+    analysis: VideoMetadataAnalysis,
+) -> MatchupVideoMetadataRecord:
+    now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    meta_record = session.get(MatchupVideoMetadataRecord, video_record_id)
+    if meta_record is None:
+        meta_record = MatchupVideoMetadataRecord(
+            video_record_id=video_record_id,
+            analysis_status=analysis.analysisStatus,
+            updated_at=now_iso,
+        )
+        session.add(meta_record)
+
+    meta_record.analysis_status = analysis.analysisStatus
+    meta_record.runes_json = (
+        json.dumps(analysis.runes.model_dump(), ensure_ascii=False)
+        if analysis.runes
+        else None
+    )
+    meta_record.summoner_spells_json = json.dumps(
+        analysis.summonerSpells, ensure_ascii=False
+    )
+    meta_record.starting_items_json = json.dumps(
+        analysis.startingItems, ensure_ascii=False
+    )
+    meta_record.timestamps_json = json.dumps(
+        [ts.model_dump() for ts in analysis.timestamps], ensure_ascii=False
+    )
+    meta_record.updated_at = now_iso
+    return meta_record
+
+
 def _record_to_model(
-    record: MatchupVideoRecord, upvoted_ids: set[str]
+    record: MatchupVideoRecord,
+    upvoted_ids: set[str],
+    meta_record: MatchupVideoMetadataRecord | None = None,
 ) -> MatchupVideo:
     return MatchupVideo(
         id=record.id,
@@ -214,6 +307,7 @@ def _record_to_model(
         origin="saved",
         upvoteCount=record.upvote_count,
         upvotedByViewer=record.id in upvoted_ids,
+        metadata=_metadata_record_to_model(meta_record),
     )
 
 
@@ -248,19 +342,30 @@ def _load_saved_matchup_videos(
             ).all()
 
             upvoted_ids: set[str] = set()
-            if voter_hash and records:
+            meta_by_id: dict[str, MatchupVideoMetadataRecord] = {}
+            if records:
                 record_ids = [record.id for record in records]
-                upvoted_ids = set(
-                    session.scalars(
-                        select(MatchupVideoVoteRecord.video_record_id).where(
-                            MatchupVideoVoteRecord.voter_hash == voter_hash,
-                            MatchupVideoVoteRecord.video_record_id.in_(record_ids),
-                        )
-                    ).all()
-                )
+                meta_records = session.scalars(
+                    select(MatchupVideoMetadataRecord).where(
+                        MatchupVideoMetadataRecord.video_record_id.in_(record_ids)
+                    )
+                ).all()
+                meta_by_id = {m.video_record_id: m for m in meta_records}
+                if voter_hash:
+                    upvoted_ids = set(
+                        session.scalars(
+                            select(MatchupVideoVoteRecord.video_record_id).where(
+                                MatchupVideoVoteRecord.voter_hash == voter_hash,
+                                MatchupVideoVoteRecord.video_record_id.in_(record_ids),
+                            )
+                        ).all()
+                    )
 
             return _sort_saved_videos(
-                [_record_to_model(record, upvoted_ids) for record in records]
+                [
+                    _record_to_model(record, upvoted_ids, meta_by_id.get(record.id))
+                    for record in records
+                ]
             )
     except SQLAlchemyError:
         logger.debug(
@@ -418,9 +523,141 @@ def toggle_matchup_video_upvote(
 
             session.commit()
             session.refresh(record)
+            meta_record = session.get(MatchupVideoMetadataRecord, record.id)
+            if meta_record is None and upvoted_by_viewer:
+                if video.metadata and video.metadata.analysisStatus != "unanalyzed":
+                    meta_record = _upsert_metadata_record(
+                        session, record.id, video.metadata
+                    )
+                    session.commit()
+                else:
+                    analyzed = fetch_and_analyze_youtube_video(record.video_url)
+                    if analyzed.analysisStatus != "unanalyzed":
+                        meta_record = _upsert_metadata_record(
+                            session, record.id, analyzed
+                        )
+                        session.commit()
+
             return _record_to_model(
-                record, {record.id} if upvoted_by_viewer else set()
+                record,
+                {record.id} if upvoted_by_viewer else set(),
+                meta_record,
             )
     except SQLAlchemyError as error:
         logger.exception("Failed to persist matchup video upvote")
         raise RuntimeError("Database is unavailable for upvoting") from error
+
+
+def analyze_matchup_video_metadata(
+    player_champion_id: str,
+    opponent_champion_id: str,
+    video: MatchupVideo,
+) -> VideoMetadataAnalysis:
+    valid_champion_ids = get_champion_ids()
+    if (
+        player_champion_id not in valid_champion_ids
+        or opponent_champion_id not in valid_champion_ids
+    ):
+        raise UnknownChampionError(
+            f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
+        )
+
+    analyzed = fetch_and_analyze_youtube_video(video.videoUrl)
+    seed_videos = load_matchups()
+    try:
+        engine = get_engine()
+        ensure_database_seeded(engine, seed_videos)
+        with Session(engine) as session:
+            record = session.get(MatchupVideoRecord, video.id)
+            if record is not None:
+                existing_meta = session.get(MatchupVideoMetadataRecord, record.id)
+                if existing_meta is not None:
+                    existing_model = _metadata_record_to_model(existing_meta)
+                    if existing_model:
+                        if existing_model.startingItems and not analyzed.startingItems:
+                            analyzed.startingItems = existing_model.startingItems
+                        if existing_model.runes and not analyzed.runes:
+                            analyzed.runes = existing_model.runes
+                        if (
+                            existing_model.summonerSpells
+                            and not analyzed.summonerSpells
+                        ):
+                            analyzed.summonerSpells = existing_model.summonerSpells
+                _upsert_metadata_record(session, record.id, analyzed)
+                session.commit()
+    except SQLAlchemyError:
+        logger.debug(
+            "Database unavailable while caching analyzed video metadata",
+            exc_info=True,
+        )
+
+    return analyzed
+
+
+def save_manual_video_metadata(
+    player_champion_id: str,
+    opponent_champion_id: str,
+    video: MatchupVideo,
+    metadata: VideoMetadataAnalysis,
+) -> VideoMetadataAnalysis:
+    _, champions = load_catalog()
+    by_id = {champion.id: champion for champion in champions}
+    player = by_id.get(player_champion_id)
+    opponent = by_id.get(opponent_champion_id)
+    if not player or not opponent:
+        raise UnknownChampionError(
+            f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
+        )
+
+    if (
+        video.playerChampionId != player_champion_id
+        or video.opponentChampionId != opponent_champion_id
+    ):
+        raise InvalidUpvoteError("Video champion IDs do not match the route matchup")
+
+    if not title_matches_matchup(video.title, player, opponent):
+        raise InvalidUpvoteError(
+            "Video title does not match the specified top-lane matchup"
+        )
+
+    verified_metadata = VideoMetadataAnalysis(
+        analysisStatus="manual_verified",
+        runes=metadata.runes,
+        summonerSpells=metadata.summonerSpells[:2],
+        startingItems=metadata.startingItems[:6],
+        timestamps=metadata.timestamps,
+    )
+
+    seed_videos = load_matchups()
+    try:
+        engine = get_engine()
+        ensure_database_seeded(engine, seed_videos)
+        with Session(engine) as session:
+            record = session.get(MatchupVideoRecord, video.id)
+            if record is None:
+                record = MatchupVideoRecord(
+                    id=video.id,
+                    player_champion_id=player_champion_id,
+                    opponent_champion_id=opponent_champion_id,
+                    title=video.title,
+                    video_url=video.videoUrl,
+                    channel_name=video.channelName,
+                    channel_url=video.channelUrl,
+                    published_at=video.publishedAt,
+                    game_patch=video.gamePatch,
+                    verified_at=video.verifiedAt,
+                    verification_status="verified",
+                    embed_status=video.embedStatus,
+                    source_url=video.sourceUrl,
+                    upvote_count=video.upvoteCount,
+                )
+                session.add(record)
+                session.flush()
+
+            _upsert_metadata_record(session, record.id, verified_metadata)
+            session.commit()
+            return verified_metadata
+    except SQLAlchemyError as error:
+        logger.exception("Failed to save manual video metadata")
+        raise RuntimeError("Database is unavailable for saving metadata") from error
+

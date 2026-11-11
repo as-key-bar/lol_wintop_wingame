@@ -13,19 +13,22 @@ from app.matchups import (
     InvalidUpvoteError,
     MatchupVideo,
     UnknownChampionError,
+    analyze_matchup_video_metadata,
     get_matchup_videos,
+    save_manual_video_metadata,
     toggle_matchup_video_upvote,
 )
+from app.video_analysis import VideoMetadataAnalysis, load_game_assets
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="wintop-wingame API", version="0.1.0")
+app = FastAPI(title="wintop-wingame API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["*"],
 )
 
@@ -44,6 +47,15 @@ class MatchupResponse(BaseModel):
 class UpvoteRequest(BaseModel):
     video: MatchupVideo
     voterToken: str = Field(min_length=1, max_length=128)
+
+
+class AnalyzeMetadataRequest(BaseModel):
+    video: MatchupVideo
+
+
+class SaveMetadataRequest(BaseModel):
+    video: MatchupVideo
+    metadata: VideoMetadataAnalysis
 
 
 @app.get("/api/health")
@@ -172,3 +184,87 @@ def post_matchup_upvote(
                 "message": "UVの保存に失敗しました。データベースの起動状態を確認してください。",
             },
         ) from error
+
+
+@app.get("/api/v1/game-assets")
+def get_game_assets() -> dict:
+    try:
+        return load_game_assets()
+    except Exception as error:
+        logger.exception("Failed to load game assets catalog")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "game_assets_unavailable",
+                "message": "ゲームアセット情報を読み込めませんでした。",
+            },
+        ) from error
+
+
+@app.post(
+    "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/analyze",
+    response_model=VideoMetadataAnalysis,
+)
+def post_analyze_matchup_video(
+    playerChampionId: str,
+    opponentChampionId: str,
+    body: AnalyzeMetadataRequest,
+) -> VideoMetadataAnalysis:
+    try:
+        return analyze_matchup_video_metadata(
+            player_champion_id=playerChampionId,
+            opponent_champion_id=opponentChampionId,
+            video=body.video,
+        )
+    except UnknownChampionError as error:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "unknown_champion",
+                "message": "指定されたチャンピオンが見つかりません。",
+            },
+        ) from error
+
+
+@app.put(
+    "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/metadata",
+    response_model=VideoMetadataAnalysis,
+)
+def put_matchup_video_metadata(
+    playerChampionId: str,
+    opponentChampionId: str,
+    body: SaveMetadataRequest,
+) -> VideoMetadataAnalysis:
+    try:
+        return save_manual_video_metadata(
+            player_champion_id=playerChampionId,
+            opponent_champion_id=opponentChampionId,
+            video=body.video,
+            metadata=body.metadata,
+        )
+    except UnknownChampionError as error:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "unknown_champion",
+                "message": "指定されたチャンピオンが見つかりません。",
+            },
+        ) from error
+    except InvalidUpvoteError as error:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "invalid_metadata",
+                "message": str(error),
+            },
+        ) from error
+    except RuntimeError as error:
+        logger.exception("Saving video metadata failed")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "metadata_unavailable",
+                "message": "ビルド情報の保存に失敗しました。",
+            },
+        ) from error
+

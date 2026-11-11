@@ -11,6 +11,86 @@ export type ChampionResponse = {
   items: Champion[];
 };
 
+export type RuneSelection = {
+  primaryStyleId: number | null;
+  subStyleId: number | null;
+  primarySelections: number[];
+  subSelections: number[];
+  statShards: number[];
+};
+
+export type VideoTimestamp = {
+  timeSeconds: number;
+  timeLabel: string;
+  label: string;
+  isKillEvent: boolean;
+};
+
+export type VideoMetadataAnalysis = {
+  analysisStatus: "unanalyzed" | "auto_parsed" | "manual_verified";
+  runes: RuneSelection | null;
+  summonerSpells: string[];
+  startingItems: string[];
+  timestamps: VideoTimestamp[];
+};
+
+export type RuneAsset = {
+  id: number;
+  key: string;
+  nameJa: string;
+  nameEn: string;
+  aliases?: string[];
+  iconUrl: string;
+  slotIndex: number;
+};
+
+export type RuneSlotAsset = {
+  slotIndex: number;
+  runes: RuneAsset[];
+};
+
+export type RuneStyleAsset = {
+  id: number;
+  key: string;
+  nameJa: string;
+  nameEn: string;
+  iconUrl: string;
+  slots: RuneSlotAsset[];
+};
+
+export type StatShardAsset = {
+  id: number;
+  key: string;
+  nameJa: string;
+  nameEn: string;
+  iconUrl: string;
+};
+
+export type SummonerSpellAsset = {
+  id: string;
+  key: string;
+  nameJa: string;
+  nameEn: string;
+  iconUrl: string;
+};
+
+export type StarterItemAsset = {
+  id: string;
+  nameJa: string;
+  nameEn: string;
+  gold: number;
+  iconUrl: string;
+};
+
+export type GameAssetsCatalog = {
+  dataDragonVersion: string;
+  sourceUrl: string;
+  runeStyles: RuneStyleAsset[];
+  statShardRows: StatShardAsset[][];
+  summonerSpells: SummonerSpellAsset[];
+  starterItems: StarterItemAsset[];
+};
+
 export type MatchupVideo = {
   id: string;
   playerChampionId: string;
@@ -28,6 +108,7 @@ export type MatchupVideo = {
   origin?: "saved" | "youtube_search";
   upvoteCount?: number;
   upvotedByViewer?: boolean;
+  metadata?: VideoMetadataAnalysis | null;
 };
 
 export type MatchupResponse = {
@@ -44,14 +125,21 @@ export function formatIsoDate(value: string): string {
   return match ? match[1] : value;
 }
 
-export function getYouTubeEmbedUrl(videoUrl: string): string | null {
+export function getYouTubeEmbedUrl(
+  videoUrl: string,
+  startSeconds?: number | null,
+): string | null {
   try {
     const parsed = new URL(videoUrl);
     const videoId = parsed.searchParams.get("v")?.trim();
     if (!videoId) {
       return null;
     }
-    return `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
+    const base = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
+    if (typeof startSeconds === "number" && startSeconds > 0) {
+      return `${base}?start=${Math.floor(startSeconds)}&autoplay=1`;
+    }
+    return base;
   } catch {
     return null;
   }

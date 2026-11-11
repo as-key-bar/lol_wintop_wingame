@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { RiotFooter } from "@/components/RiotFooter";
+import { VideoMetadataPanel } from "@/components/VideoMetadataPanel";
 import {
   apiBaseUrl,
   formatIsoDate,
@@ -12,8 +13,10 @@ import {
   getYouTubeEmbedUrl,
   type Champion,
   type ChampionResponse,
+  type GameAssetsCatalog,
   type MatchupResponse,
   type MatchupVideo,
+  type VideoMetadataAnalysis,
 } from "@/lib/api";
 import styles from "@/app/page.module.css";
 
@@ -43,12 +46,18 @@ function MatchupContent() {
 
   const [playerChampion, setPlayerChampion] = useState<Champion | null>(null);
   const [opponentChampion, setOpponentChampion] = useState<Champion | null>(null);
+  const [gameAssets, setGameAssets] = useState<GameAssetsCatalog | null>(null);
   const [matchupVideos, setMatchupVideos] = useState<MatchupVideo[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [playbackStartSeconds, setPlaybackStartSeconds] = useState<
+    number | null
+  >(null);
   const [loading, setLoading] = useState(true);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [searchedCandidates, setSearchedCandidates] = useState(false);
   const [upvotingVideoId, setUpvotingVideoId] = useState<string | null>(null);
+  const [analyzingVideoId, setAnalyzingVideoId] = useState<string | null>(null);
+  const [savingMetadata, setSavingMetadata] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -68,6 +77,7 @@ function MatchupContent() {
       try {
         const voterToken = getOrCreateVoterToken();
         const championsUrl = new URL("/api/v1/champions", apiBaseUrl);
+        const gameAssetsUrl = new URL("/api/v1/game-assets", apiBaseUrl);
         const matchupUrl = new URL(
           `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}`,
           apiBaseUrl,
@@ -76,10 +86,12 @@ function MatchupContent() {
           matchupUrl.searchParams.set("voterToken", voterToken);
         }
 
-        const [championsResponse, matchupResponse] = await Promise.all([
-          fetch(championsUrl, { signal: controller.signal }),
-          fetch(matchupUrl, { signal: controller.signal }),
-        ]);
+        const [championsResponse, gameAssetsResponse, matchupResponse] =
+          await Promise.all([
+            fetch(championsUrl, { signal: controller.signal }),
+            fetch(gameAssetsUrl, { signal: controller.signal }),
+            fetch(matchupUrl, { signal: controller.signal }),
+          ]);
 
         if (championsResponse.ok) {
           const championsData =
@@ -92,6 +104,12 @@ function MatchupContent() {
             championsData.items.find((item) => item.id === opponentChampionId) ??
               null,
           );
+        }
+
+        if (gameAssetsResponse.ok) {
+          const assetsData =
+            (await gameAssetsResponse.json()) as GameAssetsCatalog;
+          setGameAssets(assetsData);
         }
 
         if (!matchupResponse.ok) {
@@ -153,8 +171,89 @@ function MatchupContent() {
     null;
   const activeEmbedUrl =
     activeVideo && activeVideo.embedStatus !== "disabled"
-      ? getYouTubeEmbedUrl(activeVideo.videoUrl)
+      ? getYouTubeEmbedUrl(activeVideo.videoUrl, playbackStartSeconds)
       : null;
+
+  async function handleAnalyzeVideo(video: MatchupVideo) {
+    if (!playerChampionId || !opponentChampionId || analyzingVideoId) {
+      return;
+    }
+    setAnalyzingVideoId(video.id);
+    setError("");
+    try {
+      const analyzeUrl = new URL(
+        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/analyze`,
+        apiBaseUrl,
+      );
+      const response = await fetch(analyzeUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ video }),
+      });
+      if (!response.ok) {
+        throw new Error("動画概要欄からの情報取得に失敗しました。");
+      }
+      const analyzed = (await response.json()) as VideoMetadataAnalysis;
+      setMatchupVideos((previous) =>
+        previous.map((item) =>
+          item.id === video.id ? { ...item, metadata: analyzed } : item,
+        ),
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "動画概要欄からの情報取得に失敗しました。",
+      );
+    } finally {
+      setAnalyzingVideoId(null);
+    }
+  }
+
+  async function handleSaveManualMetadata(
+    video: MatchupVideo,
+    metadata: VideoMetadataAnalysis,
+  ) {
+    if (!playerChampionId || !opponentChampionId || savingMetadata) {
+      return;
+    }
+    setSavingMetadata(true);
+    setError("");
+    try {
+      const saveUrl = new URL(
+        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/metadata`,
+        apiBaseUrl,
+      );
+      const response = await fetch(saveUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ video, metadata }),
+      });
+      if (!response.ok) {
+        throw new Error("ビルド情報の保存に失敗しました。");
+      }
+      const savedMetadata = (await response.json()) as VideoMetadataAnalysis;
+      setMatchupVideos((previous) =>
+        previous.map((item) =>
+          item.id === video.id
+            ? { ...item, origin: "saved", metadata: savedMetadata }
+            : item,
+        ),
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "ビルド情報の保存に失敗しました。",
+      );
+    } finally {
+      setSavingMetadata(false);
+    }
+  }
 
   async function handleLoadMoreCandidates() {
     if (!playerChampionId || !opponentChampionId || loadingCandidates) {
@@ -348,7 +447,10 @@ function MatchupContent() {
                     className={`${styles.videoSelectorOption} ${
                       isSelected ? styles.videoSelectorOptionActive : ""
                     }`}
-                    onClick={() => setSelectedVideoId(video.id)}
+                    onClick={() => {
+                      setSelectedVideoId(video.id);
+                      setPlaybackStartSeconds(null);
+                    }}
                     title={video.title}
                   >
                     <span className={styles.videoSelectorIndex}>
@@ -387,7 +489,7 @@ function MatchupContent() {
               {activeEmbedUrl && (
                 <div className={styles.videoPlayerWrapper}>
                   <iframe
-                    key={activeVideo.id}
+                    key={`${activeVideo.id}-${playbackStartSeconds ?? 0}`}
                     className={styles.videoPlayer}
                     src={activeEmbedUrl}
                     title={activeVideo.title}
@@ -482,6 +584,21 @@ function MatchupContent() {
                   </a>
                 </div>
               </div>
+
+              <VideoMetadataPanel
+                metadata={activeVideo.metadata}
+                gameAssets={gameAssets}
+                analyzing={analyzingVideoId === activeVideo.id}
+                savingManual={savingMetadata}
+                onAnalyzeDescription={() => handleAnalyzeVideo(activeVideo)}
+                onSaveManualMetadata={(updated) =>
+                  handleSaveManualMetadata(activeVideo, updated)
+                }
+                onJumpToTimestamp={(seconds) => {
+                  setPlaybackStartSeconds(seconds);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
             </article>
           </>
         )}

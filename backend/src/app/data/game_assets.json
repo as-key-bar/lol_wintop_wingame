@@ -1,0 +1,941 @@
+{
+  "dataDragonVersion": "16.22.1",
+  "sourceUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/data/ja_JP/runesReforged.json",
+  "runeStyles": [
+    {
+      "id": 8100,
+      "key": "Domination",
+      "nameJa": "覇道",
+      "nameEn": "Domination",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7200_Domination.png",
+      "slots": [
+        {
+          "slotIndex": 0,
+          "runes": [
+            {
+              "id": 8112,
+              "key": "Electrocute",
+              "nameJa": "電撃",
+              "nameEn": "Electrocute",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/Electrocute/Electrocute.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8128,
+              "key": "DarkHarvest",
+              "nameJa": "魂の収穫",
+              "nameEn": "Dark Harvest",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/DarkHarvest/DarkHarvest.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 9923,
+              "key": "HailOfBlades",
+              "nameJa": "ヘイルブレード",
+              "nameEn": "Hail of Blades",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/HailOfBlades/HailOfBlades.png",
+              "slotIndex": 0
+            }
+          ]
+        },
+        {
+          "slotIndex": 1,
+          "runes": [
+            {
+              "id": 8126,
+              "key": "CheapShot",
+              "nameJa": "追い打ち",
+              "nameEn": "Cheap Shot",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/CheapShot/CheapShot.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8139,
+              "key": "TasteOfBlood",
+              "nameJa": "血の味わい",
+              "nameEn": "Taste of Blood",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/TasteOfBlood/GreenTerror_TasteOfBlood.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8143,
+              "key": "SuddenImpact",
+              "nameJa": "サドンインパクト",
+              "nameEn": "Sudden Impact",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/SuddenImpact/SuddenImpact.png",
+              "slotIndex": 1
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "runes": [
+            {
+              "id": 8137,
+              "key": "SixthSense",
+              "nameJa": "第六感",
+              "nameEn": "Sixth Sense",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/SixthSense/SixthSense.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8140,
+              "key": "GrislyMementos",
+              "nameJa": "グリスリー メメント",
+              "nameEn": "Grisly Mementos",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/GrislyMementos/GrislyMementos.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8141,
+              "key": "DeepWard",
+              "nameJa": "ディープワード",
+              "nameEn": "Deep Ward",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/DeepWard/DeepWard.png",
+              "slotIndex": 2
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "runes": [
+            {
+              "id": 8135,
+              "key": "TreasureHunter",
+              "nameJa": "貪欲な賞金首狩り",
+              "nameEn": "Treasure Hunter",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/TreasureHunter/TreasureHunter.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8105,
+              "key": "RelentlessHunter",
+              "nameJa": "執拗な賞金首狩り",
+              "nameEn": "Relentless Hunter",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/RelentlessHunter/RelentlessHunter.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8106,
+              "key": "UltimateHunter",
+              "nameJa": "至極の賞金首狩り",
+              "nameEn": "Ultimate Hunter",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Domination/UltimateHunter/UltimateHunter.png",
+              "slotIndex": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8300,
+      "key": "Inspiration",
+      "nameJa": "天啓",
+      "nameEn": "Inspiration",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7203_Whimsy.png",
+      "slots": [
+        {
+          "slotIndex": 0,
+          "runes": [
+            {
+              "id": 8351,
+              "key": "GlacialAugment",
+              "nameJa": "グレイシャルオーグメント",
+              "nameEn": "Glacial Augment",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/GlacialAugment/GlacialAugment.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8360,
+              "key": "UnsealedSpellbook",
+              "nameJa": "解放の魔導書",
+              "nameEn": "Unsealed Spellbook",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/UnsealedSpellbook/UnsealedSpellbook.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8369,
+              "key": "FirstStrike",
+              "nameJa": "ファーストストライク",
+              "nameEn": "First Strike",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/FirstStrike/FirstStrike.png",
+              "slotIndex": 0
+            }
+          ]
+        },
+        {
+          "slotIndex": 1,
+          "runes": [
+            {
+              "id": 8306,
+              "key": "HextechFlashtraption",
+              "nameJa": "ヘクステックフラッシュネイター",
+              "nameEn": "Hextech Flashtraption",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/HextechFlashtraption/HextechFlashtraption.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8304,
+              "key": "MagicalFootwear",
+              "nameJa": "魔法の靴",
+              "nameEn": "Magical Footwear",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/MagicalFootwear/MagicalFootwear.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8321,
+              "key": "CashBack",
+              "nameJa": "キャッシュバック",
+              "nameEn": "Cash Back",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/CashBack/CashBack2.png",
+              "slotIndex": 1
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "runes": [
+            {
+              "id": 8313,
+              "key": "PerfectTiming",
+              "nameJa": "トリプル トニック",
+              "nameEn": "Triple Tonic",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/PerfectTiming/AlchemistCabinet.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8352,
+              "key": "TimeWarpTonic",
+              "nameJa": "タイムワープトニック",
+              "nameEn": "Time Warp Tonic",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/TimeWarpTonic/TimeWarpTonic.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8345,
+              "key": "BiscuitDelivery",
+              "nameJa": "ビスケットデリバリー",
+              "nameEn": "Biscuit Delivery",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/BiscuitDelivery/BiscuitDelivery.png",
+              "slotIndex": 2
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "runes": [
+            {
+              "id": 8347,
+              "key": "CosmicInsight",
+              "nameJa": "宇宙の英知",
+              "nameEn": "Cosmic Insight",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/CosmicInsight/CosmicInsight.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8410,
+              "key": "ApproachVelocity",
+              "nameJa": "疾駆",
+              "nameEn": "Approach Velocity",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/ApproachVelocity/ApproachVelocity.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8316,
+              "key": "JackOfAllTrades",
+              "nameJa": "なんでも屋",
+              "nameEn": "Jack Of All Trades",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Inspiration/JackOfAllTrades/JackofAllTrades2.png",
+              "slotIndex": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8000,
+      "key": "Precision",
+      "nameJa": "栄華",
+      "nameEn": "Precision",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7201_Precision.png",
+      "slots": [
+        {
+          "slotIndex": 0,
+          "runes": [
+            {
+              "id": 8005,
+              "key": "PressTheAttack",
+              "nameJa": "プレスアタック",
+              "nameEn": "Press the Attack",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/PressTheAttack/PressTheAttack.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8008,
+              "key": "LethalTempo",
+              "nameJa": "リーサルテンポ",
+              "nameEn": "Lethal Tempo",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LethalTempo/LethalTempoTemp.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8021,
+              "key": "FleetFootwork",
+              "nameJa": "フリートフットワーク",
+              "nameEn": "Fleet Footwork",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/FleetFootwork/FleetFootwork.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8010,
+              "key": "Conqueror",
+              "nameJa": "征服者",
+              "nameEn": "Conqueror",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Conqueror/Conqueror.png",
+              "slotIndex": 0
+            }
+          ]
+        },
+        {
+          "slotIndex": 1,
+          "runes": [
+            {
+              "id": 9101,
+              "key": "AbsorbLife",
+              "nameJa": "体力吸収",
+              "nameEn": "Absorb Life",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/AbsorbLife/AbsorbLife.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 9111,
+              "key": "Triumph",
+              "nameJa": "凱旋",
+              "nameEn": "Triumph",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/Triumph.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8009,
+              "key": "PresenceOfMind",
+              "nameJa": "冷静沈着",
+              "nameEn": "Presence of Mind",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/PresenceOfMind/PresenceOfMind.png",
+              "slotIndex": 1
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "runes": [
+            {
+              "id": 9104,
+              "key": "LegendAlacrity",
+              "nameJa": "レジェンド: 迅速",
+              "nameEn": "Legend: Alacrity",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LegendAlacrity/LegendAlacrity.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 9105,
+              "key": "LegendHaste",
+              "nameJa": "レジェンド: ヘイスト",
+              "nameEn": "Legend: Haste",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LegendHaste/LegendHaste.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 9103,
+              "key": "LegendBloodline",
+              "nameJa": "レジェンド: 血脈",
+              "nameEn": "Legend: Bloodline",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/LegendBloodline/LegendBloodline.png",
+              "slotIndex": 2
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "runes": [
+            {
+              "id": 8014,
+              "key": "CoupDeGrace",
+              "nameJa": "最期の慈悲",
+              "nameEn": "Coup de Grace",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/CoupDeGrace/CoupDeGrace.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8017,
+              "key": "CutDown",
+              "nameJa": "切り崩し",
+              "nameEn": "Cut Down",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Precision/CutDown/CutDown.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8299,
+              "key": "LastStand",
+              "nameJa": "背水の陣",
+              "nameEn": "Last Stand",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/LastStand/LastStand.png",
+              "slotIndex": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8400,
+      "key": "Resolve",
+      "nameJa": "不滅",
+      "nameEn": "Resolve",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7204_Resolve.png",
+      "slots": [
+        {
+          "slotIndex": 0,
+          "runes": [
+            {
+              "id": 8437,
+              "key": "GraspOfTheUndying",
+              "nameJa": "不死者の握撃",
+              "nameEn": "Grasp of the Undying",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/GraspOfTheUndying/GraspOfTheUndying.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8439,
+              "key": "Aftershock",
+              "nameJa": "アフターショック",
+              "nameEn": "Aftershock",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/VeteranAftershock/VeteranAftershock.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8465,
+              "key": "Guardian",
+              "nameJa": "ガーディアン",
+              "nameEn": "Guardian",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Guardian/Guardian.png",
+              "slotIndex": 0
+            }
+          ]
+        },
+        {
+          "slotIndex": 1,
+          "runes": [
+            {
+              "id": 8446,
+              "key": "Demolish",
+              "nameJa": "打ちこわし",
+              "nameEn": "Demolish",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Demolish/Demolish.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8463,
+              "key": "FontOfLife",
+              "nameJa": "生命の泉",
+              "nameEn": "Font of Life",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/FontOfLife/FontOfLife.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8401,
+              "key": "ShieldBash",
+              "nameJa": "シールドバッシュ",
+              "nameEn": "Shield Bash",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/MirrorShell/MirrorShell.png",
+              "slotIndex": 1
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "runes": [
+            {
+              "id": 8429,
+              "key": "Conditioning",
+              "nameJa": "心身調整",
+              "nameEn": "Conditioning",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Conditioning/Conditioning.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8444,
+              "key": "SecondWind",
+              "nameJa": "息継ぎ",
+              "nameEn": "Second Wind",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/SecondWind/SecondWind.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8473,
+              "key": "BonePlating",
+              "nameJa": "ボーンアーマー",
+              "nameEn": "Bone Plating",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/BonePlating/BonePlating.png",
+              "slotIndex": 2
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "runes": [
+            {
+              "id": 8451,
+              "key": "Overgrowth",
+              "nameJa": "超成長",
+              "nameEn": "Overgrowth",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Overgrowth/Overgrowth.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8453,
+              "key": "Revitalize",
+              "nameJa": "生気付与",
+              "nameEn": "Revitalize",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Resolve/Revitalize/Revitalize.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8242,
+              "key": "Unflinching",
+              "nameJa": "気迫",
+              "nameEn": "Unflinching",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/Unflinching/Unflinching.png",
+              "slotIndex": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8200,
+      "key": "Sorcery",
+      "nameJa": "魔道",
+      "nameEn": "Sorcery",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/7202_Sorcery.png",
+      "slots": [
+        {
+          "slotIndex": 0,
+          "runes": [
+            {
+              "id": 8214,
+              "key": "SummonAery",
+              "nameJa": "エアリー召喚",
+              "nameEn": "Summon Aery",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/SummonAery/SummonAery.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8229,
+              "key": "ArcaneComet",
+              "nameJa": "秘儀の彗星",
+              "nameEn": "Arcane Comet",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/ArcaneComet/ArcaneComet.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8230,
+              "key": "PhaseRush",
+              "nameJa": "嵐乗りの勇躍",
+              "nameEn": "Stormraider's Surge",
+              "aliases": [
+                "Phase Rush",
+                "フェイズラッシュ"
+              ],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/PhaseRush/StormraidersSurgeRuneIcon2.png",
+              "slotIndex": 0
+            },
+            {
+              "id": 8992,
+              "key": "DeathfireTouch",
+              "nameJa": "死神の残り火",
+              "nameEn": "Deathfire Touch",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/DeathfireTouch/DEATHFIRE_TOUCH_KEYSTONE.png",
+              "slotIndex": 0
+            }
+          ]
+        },
+        {
+          "slotIndex": 1,
+          "runes": [
+            {
+              "id": 8224,
+              "key": "NullifyingOrb",
+              "nameJa": "アクシオム アルカニスト",
+              "nameEn": "Axiom Arcanist",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/NullifyingOrb/Axiom_Arcanist.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8226,
+              "key": "ManaflowBand",
+              "nameJa": "マナフローバンド",
+              "nameEn": "Manaflow Band",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/ManaflowBand/ManaflowBand.png",
+              "slotIndex": 1
+            },
+            {
+              "id": 8275,
+              "key": "NimbusCloak",
+              "nameJa": "ニンバスクローク",
+              "nameEn": "Nimbus Cloak",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/NimbusCloak/6361.png",
+              "slotIndex": 1
+            }
+          ]
+        },
+        {
+          "slotIndex": 2,
+          "runes": [
+            {
+              "id": 8210,
+              "key": "Transcendence",
+              "nameJa": "至高",
+              "nameEn": "Transcendence",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/Transcendence/Transcendence.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8234,
+              "key": "Celerity",
+              "nameJa": "追い風",
+              "nameEn": "Celerity",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/Celerity/CelerityTemp.png",
+              "slotIndex": 2
+            },
+            {
+              "id": 8233,
+              "key": "AbsoluteFocus",
+              "nameJa": "英気集中",
+              "nameEn": "Absolute Focus",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/AbsoluteFocus/AbsoluteFocus.png",
+              "slotIndex": 2
+            }
+          ]
+        },
+        {
+          "slotIndex": 3,
+          "runes": [
+            {
+              "id": 8237,
+              "key": "Scorch",
+              "nameJa": "追火",
+              "nameEn": "Scorch",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/Scorch/Scorch.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8232,
+              "key": "Waterwalking",
+              "nameJa": "水走り",
+              "nameEn": "Waterwalking",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/Waterwalking/Waterwalking.png",
+              "slotIndex": 3
+            },
+            {
+              "id": 8236,
+              "key": "GatheringStorm",
+              "nameJa": "強まる嵐",
+              "nameEn": "Gathering Storm",
+              "aliases": [],
+              "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/Sorcery/GatheringStorm/GatheringStorm.png",
+              "slotIndex": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "statShardRows": [
+    [
+      {
+        "id": 5008,
+        "key": "AdaptiveForce",
+        "nameJa": "アダプティブフォース",
+        "nameEn": "Adaptive Force",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAdaptiveForceIcon.png"
+      },
+      {
+        "id": 5005,
+        "key": "AttackSpeed",
+        "nameJa": "攻撃速度",
+        "nameEn": "Attack Speed",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAttackSpeedIcon.png"
+      },
+      {
+        "id": 5007,
+        "key": "AbilityHaste",
+        "nameJa": "スキルヘイスト",
+        "nameEn": "Ability Haste",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsCDRScalingIcon.png"
+      }
+    ],
+    [
+      {
+        "id": 5008,
+        "key": "AdaptiveForce",
+        "nameJa": "アダプティブフォース",
+        "nameEn": "Adaptive Force",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsAdaptiveForceIcon.png"
+      },
+      {
+        "id": 5010,
+        "key": "MoveSpeed",
+        "nameJa": "移動速度",
+        "nameEn": "Move Speed",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsMovementSpeedIcon.png"
+      },
+      {
+        "id": 5001,
+        "key": "HealthScaling",
+        "nameJa": "体力（スケーリング）",
+        "nameEn": "Health Scaling",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthPlusIcon.png"
+      }
+    ],
+    [
+      {
+        "id": 5011,
+        "key": "HealthFlat",
+        "nameJa": "体力",
+        "nameEn": "Health",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthScalingIcon.png"
+      },
+      {
+        "id": 5013,
+        "key": "Tenacity",
+        "nameJa": "行動妨害耐性＆スロウ耐性",
+        "nameEn": "Tenacity and Slow Resist",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsTenacityIcon.png"
+      },
+      {
+        "id": 5001,
+        "key": "HealthScaling",
+        "nameJa": "体力（スケーリング）",
+        "nameEn": "Health Scaling",
+        "iconUrl": "https://ddragon.leagueoflegends.com/cdn/img/perk-images/StatMods/StatModsHealthPlusIcon.png"
+      }
+    ]
+  ],
+  "summonerSpells": [
+    {
+      "id": "SummonerBarrier",
+      "key": "21",
+      "nameJa": "バリア",
+      "nameEn": "Barrier",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerBarrier.png"
+    },
+    {
+      "id": "SummonerBoost",
+      "key": "1",
+      "nameJa": "クレンズ",
+      "nameEn": "Cleanse",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerBoost.png"
+    },
+    {
+      "id": "SummonerDot",
+      "key": "14",
+      "nameJa": "イグナイト",
+      "nameEn": "Ignite",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerDot.png"
+    },
+    {
+      "id": "SummonerExhaust",
+      "key": "3",
+      "nameJa": "イグゾースト",
+      "nameEn": "Exhaust",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerExhaust.png"
+    },
+    {
+      "id": "SummonerFlash",
+      "key": "4",
+      "nameJa": "フラッシュ",
+      "nameEn": "Flash",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerFlash.png"
+    },
+    {
+      "id": "SummonerHaste",
+      "key": "6",
+      "nameJa": "ゴースト",
+      "nameEn": "Ghost",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerHaste.png"
+    },
+    {
+      "id": "SummonerHeal",
+      "key": "7",
+      "nameJa": "ヒール",
+      "nameEn": "Heal",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerHeal.png"
+    },
+    {
+      "id": "SummonerSmite",
+      "key": "11",
+      "nameJa": "スマイト",
+      "nameEn": "Smite",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerSmite.png"
+    },
+    {
+      "id": "SummonerTeleport",
+      "key": "12",
+      "nameJa": "テレポート",
+      "nameEn": "Teleport",
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/spell/SummonerTeleport.png"
+    }
+  ],
+  "starterItems": [
+    {
+      "id": "1001",
+      "nameJa": "ブーツ",
+      "nameEn": "Boots",
+      "gold": 300,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1001.png"
+    },
+    {
+      "id": "1027",
+      "nameJa": "サファイア クリスタル",
+      "nameEn": "Sapphire Crystal",
+      "gold": 300,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1027.png"
+    },
+    {
+      "id": "1028",
+      "nameJa": "ルビー クリスタル",
+      "nameEn": "Ruby Crystal",
+      "gold": 400,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1028.png"
+    },
+    {
+      "id": "1029",
+      "nameJa": "クロース アーマー",
+      "nameEn": "Cloth Armor",
+      "gold": 300,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1029.png"
+    },
+    {
+      "id": "1036",
+      "nameJa": "ロング ソード",
+      "nameEn": "Long Sword",
+      "gold": 350,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1036.png"
+    },
+    {
+      "id": "1054",
+      "nameJa": "ドラン シールド",
+      "nameEn": "Doran's Shield",
+      "gold": 450,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1054.png"
+    },
+    {
+      "id": "1055",
+      "nameJa": "ドラン ブレード",
+      "nameEn": "Doran's Blade",
+      "gold": 450,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1055.png"
+    },
+    {
+      "id": "1056",
+      "nameJa": "ドラン リング",
+      "nameEn": "Doran's Ring",
+      "gold": 400,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1056.png"
+    },
+    {
+      "id": "1082",
+      "nameJa": "ダーク シール",
+      "nameEn": "Dark Seal",
+      "gold": 350,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1082.png"
+    },
+    {
+      "id": "1083",
+      "nameJa": "カル",
+      "nameEn": "Cull",
+      "gold": 450,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/1083.png"
+    },
+    {
+      "id": "2003",
+      "nameJa": "体力ポーション",
+      "nameEn": "Health Potion",
+      "gold": 50,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/2003.png"
+    },
+    {
+      "id": "2031",
+      "nameJa": "詰め替えポーション",
+      "nameEn": "Refillable Potion",
+      "gold": 150,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/2031.png"
+    },
+    {
+      "id": "3070",
+      "nameJa": "女神の涙",
+      "nameEn": "Tear of the Goddess",
+      "gold": 400,
+      "iconUrl": "https://ddragon.leagueoflegends.com/cdn/16.22.1/img/item/3070.png"
+    }
+  ]
+}
