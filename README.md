@@ -71,7 +71,7 @@ pytest backend/tests
 
 ## 仕様
 
-詳細は[プロジェクト仕様書](./LoLタイマン勝てるのツール.md)、[Phase 1データ契約](./docs/phase1-data-contract.md)を参照してください。動画ソースの利用条件、チャンピオン情報の出典・利用条件は、作業環境内の `phase1-source-research.md` にまとめています（Git管理対象外）。
+詳細は[プロジェクト仕様書](./LoLタイマン勝てるのツール.md)、[Phase 1データ契約](./docs/phase1-data-contract.md)、[Phase 2ロードマップ](./docs/phase2-roadmap.md)を参照してください。現在の開発状況、別マシンでのセットアップ手順、既知の課題は[開発引継ぎメモ](./docs/HANDOFF.md)にまとめています。動画ソースの利用条件、チャンピオン情報の出典・利用条件は、作業環境内の `phase1-source-research.md` にまとめています（Git管理対象外）。
 
 チャンピオンカタログはData Dragonのバージョン付きデータです。パッチ更新時はプロジェクトルートから `python3 scripts/update_champion_catalog.py` を実行し、生成された差分を確認してください。
 
