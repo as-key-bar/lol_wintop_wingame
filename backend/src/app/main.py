@@ -36,7 +36,10 @@ def get_cors_origins() -> list[str]:
     return [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
 
 
-app = FastAPI(title="wintop-wingame API", version="0.2.0")
+APP_VERSION = os.getenv("APP_VERSION", "dev")
+APP_COMMIT = os.getenv("APP_COMMIT", "unknown")
+
+app = FastAPI(title="wintop-wingame API", version=APP_VERSION)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
@@ -117,6 +120,11 @@ class SaveMetadataRequest(BaseModel):
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/version")
+def get_version() -> dict[str, str]:
+    return {"version": APP_VERSION, "commit": APP_COMMIT}
 
 
 @app.get("/api/health/database")

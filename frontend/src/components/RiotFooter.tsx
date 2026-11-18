@@ -1,6 +1,9 @@
 import Link from "next/link";
 import styles from "@/app/page.module.css";
 
+const appVersion = process.env.NEXT_PUBLIC_APP_VERSION || "dev";
+const appCommit = process.env.NEXT_PUBLIC_APP_COMMIT || "";
+
 export function RiotFooter() {
   return (
     <footer className={styles.footer}>
@@ -15,6 +18,13 @@ export function RiotFooter() {
         </a>
         {" ・ "}
         <Link href="/credit">クレジット</Link>
+        {" ・ "}
+        <span
+          data-testid="app-version"
+          title={appCommit ? `commit ${appCommit}` : undefined}
+        >
+          v{appVersion}
+        </span>
       </p>
       <p className={styles.legal}>
         wintop-wingame is not endorsed by Riot Games and does not reflect the

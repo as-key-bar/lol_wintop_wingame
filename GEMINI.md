@@ -42,6 +42,10 @@ TASK-001 to 004 and 008 to 011 are done. Deployment is the current work (decided
 
 Do not implement account features, Riot account linking, or lane recommendations without an explicit request.
 
+## Versioning
+
+`VERSION` (repo root) is `0.<phase>.<push number>`: the first number stays `0` until release, the second is the current phase (now `2`), and the third **must be bumped on every push to `main`**. It is shown in the footer (`v0.2.1`, commit in the tooltip) and at `GET /api/version`; `deploy/update.sh` passes it and the commit into the build. Run `./scripts/install-git-hooks.sh` once per clone: its pre-push hook rejects a push to `main` when `VERSION` is unchanged (`--no-verify` to skip). Bump `VERSION` in the same commit as the change, or in a final commit before pushing.
+
 ## Development and verification
 
 Requirements: Node.js 20.9+, npm, Python 3.12+, Docker Compose.

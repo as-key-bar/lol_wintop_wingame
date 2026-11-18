@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Warn when pushing commits without bumping VERSION.
+# Versioning: 0.<phase>.<push number>. The last number goes up on every push; the middle
+# number is the current phase (currently 2); the first number stays 0 until release.
+# Install once per clone:  ./scripts/install-git-hooks.sh
+set -u
+
+zero="0000000000000000000000000000000000000000"
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue                      # branch deletion
+  case "$remote_ref" in refs/heads/main) ;; *) continue ;; esac
+
+  if [ "$remote_sha" = "$zero" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+  [ -z "$(git rev-list "$range" 2>/dev/null | head -1)" ] && continue
+
+  old="$(git show "${remote_sha}:VERSION" 2>/dev/null | tr -d '[:space:]')"
+  new="$(git show "${local_sha}:VERSION" 2>/dev/null | tr -d '[:space:]')"
+
+  if [ -z "$new" ]; then
+    echo "pre-push: VERSION is missing at ${local_sha:0:7}." >&2
+    exit 1
+  fi
+  if [ "$remote_sha" != "$zero" ] && [ "$old" = "$new" ]; then
+    echo "pre-push: VERSION is still $new, the same as the remote." >&2
+    echo "          Bump the last number (e.g. edit VERSION), commit, and push again." >&2
+    echo "          To push anyway: git push --no-verify" >&2
+    exit 1
+  fi
+  echo "pre-push: VERSION ${old:-<none>} -> $new"
+done
+exit 0

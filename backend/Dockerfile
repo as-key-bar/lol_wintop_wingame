@@ -1,7 +1,11 @@
 FROM python:3.14-slim
 
+ARG APP_VERSION=dev
+ARG APP_COMMIT=unknown
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    APP_VERSION=$APP_VERSION \
+    APP_COMMIT=$APP_COMMIT
 
 WORKDIR /app
 COPY backend/pyproject.toml ./backend/pyproject.toml

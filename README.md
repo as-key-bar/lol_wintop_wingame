@@ -72,6 +72,22 @@ VS Codeでは、コマンドパレットから **Tasks: Run Task → Dev: Start 
 
 AWS の EC2 1台に Docker Compose で載せる構成を用意しています（`compose.prod.yaml`、`deploy/`、`backend/Dockerfile`、`frontend/Dockerfile`）。環境変数の雛形は `deploy/env.example` です。実際の値は `deploy/.env`（Git 管理外）に書きます。デプロイ手順は非公開の `docs/DEPLOY_PRIVATE.md`（Git 管理外）にまとめています。
 
+## バージョン管理
+
+リポジトリ直下の `VERSION` に `0.<フェーズ>.<プッシュ番号>` の形式で書きます。
+
+- 1つ目：リリースするまでは `0`
+- 2つ目：現在のフェーズ（現在は `2`）
+- 3つ目：**`main` へのプッシュごとに1つ上げる**
+
+画面のフッター（`v0.2.1`）と `GET /api/version`（版数とコミット）に表示されます。デプロイは `deploy/update.sh` が `VERSION` と現在のコミットをビルドに渡すので、画面の表示でデプロイ済みのバージョンを確認できます（版数にカーソルを合わせるとコミットが出ます）。
+
+プッシュ前に `VERSION` を上げ忘れると、git の pre-push フックが止めます。クローンごとに、一度だけ次を実行してください。
+
+    ./scripts/install-git-hooks.sh
+
+どうしても上げずに送る場合は `git push --no-verify` を使います。
+
 ## チェック
 
 ```sh
