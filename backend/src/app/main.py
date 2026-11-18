@@ -5,6 +5,7 @@ import os
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
@@ -20,6 +21,7 @@ from app.matchups import (
     save_manual_video_metadata,
     toggle_matchup_video_upvote,
 )
+from app.rate_limit import rate_limit
 from app.video_analysis import VideoMetadataAnalysis, load_game_assets
 
 load_dotenv()
@@ -41,6 +43,25 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+MAX_REQUEST_BODY_BYTES = 64 * 1024
+
+
+@app.middleware("http")
+async def limit_request_body(request, call_next):
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_REQUEST_BODY_BYTES:
+        return JSONResponse(
+            status_code=413,
+            content={
+                "detail": {
+                    "code": "payload_too_large",
+                    "message": "リクエストが大きすぎます。",
+                }
+            },
+        )
+    return await call_next(request)
 
 
 def require_admin_token(authorization: str | None = Header(default=None)) -> None:
@@ -133,6 +154,7 @@ def get_champions(
 @app.get(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}",
     response_model=MatchupResponse,
+    dependencies=[Depends(rate_limit("matchup-read", 120, 60))],
 )
 def get_matchup(
     playerChampionId: str,
@@ -176,6 +198,7 @@ def get_matchup(
 @app.post(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/upvote",
     response_model=MatchupVideo,
+    dependencies=[Depends(rate_limit("upvote", 20, 60))],
 )
 def post_matchup_upvote(
     playerChampionId: str,
@@ -235,6 +258,7 @@ def get_game_assets() -> dict:
 @app.post(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/analyze",
     response_model=VideoMetadataAnalysis,
+    dependencies=[Depends(rate_limit("analyze", 10, 60))],
 )
 def post_analyze_matchup_video(
     playerChampionId: str,
@@ -261,7 +285,7 @@ def post_analyze_matchup_video(
 @app.put(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/metadata",
     response_model=VideoMetadataAnalysis,
-    dependencies=[Depends(require_admin_token)],
+    dependencies=[Depends(rate_limit("metadata-write", 10, 60)), Depends(require_admin_token)],
 )
 def put_matchup_video_metadata(
     playerChampionId: str,

@@ -3,6 +3,11 @@
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
 
+	# Reject oversized request bodies before they reach the API (all JSON payloads are small).
+	request_body {
+		max_size 64KB
+	}
+
 	@api path /api/*
 	handle @api {
 		reverse_proxy api:8000

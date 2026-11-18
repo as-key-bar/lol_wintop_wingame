@@ -2,8 +2,10 @@ import json
 import logging
 import os
 import re
+import threading
+import time
 from datetime import datetime, timezone
-from functools import lru_cache
+from collections import OrderedDict
 from typing import Any
 from urllib.parse import quote_plus, urlencode
 from urllib.request import Request, urlopen
@@ -345,11 +347,19 @@ def build_search_query(player: Champion, opponent: Champion) -> str:
     return f'"{player.nameEn} Top vs {opponent.nameEn}"'
 
 
-@lru_cache(maxsize=256)
-def _cached_youtube_search(
-    player_id: str,
-    opponent_id: str,
-    max_results: int,
+SEARCH_CACHE_MAX_ENTRIES = 256
+SEARCH_CACHE_TTL_SECONDS = 6 * 3600
+_search_cache: "OrderedDict[tuple[str, str, int], tuple[float, tuple[dict[str, Any], ...]]]" = OrderedDict()
+_search_cache_lock = threading.Lock()
+
+
+def clear_search_cache() -> None:
+    with _search_cache_lock:
+        _search_cache.clear()
+
+
+def _search_uncached(
+    player_id: str, opponent_id: str, max_results: int
 ) -> tuple[dict[str, Any], ...]:
     from app.champions import load_catalog
 
@@ -361,19 +371,58 @@ def _cached_youtube_search(
     query = build_search_query(player, opponent)
     api_key = os.getenv("YOUTUBE_API_KEY", "").strip()
     if api_key:
-        items = _search_via_data_api(api_key, query, player, opponent, max_results)
-        return tuple(items)
+        return tuple(_search_via_data_api(api_key, query, player, opponent, max_results))
 
     search_url = f"{YOUTUBE_SEARCH_URL}?search_query={quote_plus(query)}"
     html_text = _fetch_text(search_url)
-    items = parse_youtube_initial_data(
-        html_text=html_text,
-        player=player,
-        opponent=opponent,
-        source_url=search_url,
-        max_results=max_results,
+    return tuple(
+        parse_youtube_initial_data(
+            html_text=html_text,
+            player=player,
+            opponent=opponent,
+            source_url=search_url,
+            max_results=max_results,
+        )
     )
-    return tuple(items)
+
+
+def _cached_youtube_search(
+    player_id: str, opponent_id: str, max_results: int
+) -> tuple[dict[str, Any], ...]:
+    key = (player_id, opponent_id, max_results)
+    now = time.monotonic()
+    with _search_cache_lock:
+        entry = _search_cache.get(key)
+        if entry and now - entry[0] < SEARCH_CACHE_TTL_SECONDS:
+            _search_cache.move_to_end(key)
+            return entry[1]
+
+    items = _search_uncached(player_id, opponent_id, max_results)
+    with _search_cache_lock:
+        _search_cache[key] = (now, items)
+        _search_cache.move_to_end(key)
+        while len(_search_cache) > SEARCH_CACHE_MAX_ENTRIES:
+            _search_cache.popitem(last=False)
+    return items
+
+
+def was_offered_as_candidate(
+    player_champion_id: str, opponent_champion_id: str, video_url: str
+) -> bool:
+    """True if this server's own search returned the video for this matchup.
+
+    Reads the cache only, so it never triggers an outbound request.
+    """
+    now = time.monotonic()
+    with _search_cache_lock:
+        for (player_id, opponent_id, _), (stored_at, items) in _search_cache.items():
+            if (player_id, opponent_id) != (player_champion_id, opponent_champion_id):
+                continue
+            if now - stored_at >= SEARCH_CACHE_TTL_SECONDS:
+                continue
+            if any(item.get("videoUrl") == video_url for item in items):
+                return True
+    return False
 
 
 def search_youtube_matchup_candidates(

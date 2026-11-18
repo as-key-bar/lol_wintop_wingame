@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from datetime import datetime, timezone
 from functools import lru_cache
 from pathlib import Path
@@ -31,11 +32,15 @@ from app.youtube_search import (
     parse_patch_tuple,
     search_youtube_matchup_candidates,
     title_matches_matchup,
+    was_offered_as_candidate,
 )
 
 logger = logging.getLogger(__name__)
 MATCHUPS_PATH = Path(__file__).parent / "data" / "matchups.json"
 YOUTUBE_WATCH_HOSTS = {"www.youtube.com", "youtube.com"}
+YOUTUBE_VIDEO_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
+YOUTUBE_CHANNEL_HOSTS = {"www.youtube.com", "youtube.com"}
+MAX_TEXT_LENGTH = 512
 
 
 class UnknownChampionError(LookupError):
@@ -44,6 +49,11 @@ class UnknownChampionError(LookupError):
 
 class InvalidUpvoteError(ValueError):
     """Raised when an upvote payload does not match the target matchup."""
+
+
+def canonical_video_record_id(player_champion_id: str, opponent_champion_id: str, video_url: str) -> str:
+    video_id = parse_qs(urlparse(video_url).query)["v"][0]
+    return f"yt-{player_champion_id.lower()}-vs-{opponent_champion_id.lower()}-{video_id}"
 
 
 def _validate_https_url(value: str, field_name: str) -> str:
@@ -65,19 +75,19 @@ def _validate_iso_datetime(value: str, field_name: str) -> str:
 
 
 class MatchupVideo(BaseModel):
-    id: str = Field(min_length=1)
-    playerChampionId: str = Field(min_length=1)
-    opponentChampionId: str = Field(min_length=1)
-    title: str = Field(min_length=1)
-    videoUrl: str = Field(min_length=1)
-    channelName: str = Field(min_length=1)
-    channelUrl: str = Field(min_length=1)
-    publishedAt: str | None = None
-    gamePatch: str | None = None
-    verifiedAt: str = Field(min_length=1)
+    id: str = Field(min_length=1, max_length=191)
+    playerChampionId: str = Field(min_length=1, max_length=64)
+    opponentChampionId: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
+    videoUrl: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
+    channelName: str = Field(min_length=1, max_length=255)
+    channelUrl: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
+    publishedAt: str | None = Field(default=None, max_length=64)
+    gamePatch: str | None = Field(default=None, max_length=32)
+    verifiedAt: str = Field(min_length=1, max_length=64)
     verificationStatus: Literal["verified", "candidate"] = "verified"
     embedStatus: Literal["unknown", "allowed", "disabled"] = "unknown"
-    sourceUrl: str = Field(min_length=1)
+    sourceUrl: str = Field(min_length=1, max_length=MAX_TEXT_LENGTH)
     origin: Literal["saved", "youtube_search"] = "saved"
     upvoteCount: int = Field(default=0, ge=0)
     upvotedByViewer: bool = False
@@ -93,15 +103,19 @@ class MatchupVideo(BaseModel):
             parsed.netloc not in YOUTUBE_WATCH_HOSTS
             or parsed.path != "/watch"
             or not video_ids
-            or not video_ids[0].strip()
+            or not YOUTUBE_VIDEO_ID_PATTERN.fullmatch(video_ids[0])
         ):
             raise ValueError("videoUrl must be a YouTube watch page HTTPS URL")
         return value
 
     @field_validator("channelUrl", "sourceUrl")
     @classmethod
-    def validate_https_urls(cls, value: str, info) -> str:
-        return _validate_https_url(value, info.field_name)
+    def validate_youtube_urls(cls, value: str, info) -> str:
+        _validate_https_url(value, info.field_name)
+        # Links are rendered to visitors, so only YouTube hosts are accepted.
+        if urlparse(value).netloc not in YOUTUBE_CHANNEL_HOSTS:
+            raise ValueError(f"{info.field_name} must be a YouTube HTTPS URL")
+        return value
 
     @field_validator("verifiedAt")
     @classmethod
@@ -482,8 +496,18 @@ def toggle_matchup_video_upvote(
                 )
             )
             if record is None:
+                # Only videos this server itself offered (via its YouTube search) may
+                # become new rows; otherwise anyone could inject arbitrary videos.
+                if not was_offered_as_candidate(
+                    player_champion_id, opponent_champion_id, video.videoUrl
+                ):
+                    raise InvalidUpvoteError(
+                        "Only videos offered by the matchup search can be upvoted"
+                    )
                 record = MatchupVideoRecord(
-                    id=video.id,
+                    id=canonical_video_record_id(
+                        player_champion_id, opponent_champion_id, video.videoUrl
+                    ),
                     player_champion_id=player_champion_id,
                     opponent_champion_id=opponent_champion_id,
                     title=video.title,
@@ -568,7 +592,12 @@ def analyze_matchup_video_metadata(
         engine = get_engine()
         ensure_database_seeded(engine, seed_videos)
         with Session(engine) as session:
-            record = session.get(MatchupVideoRecord, video.id)
+            record = session.get(
+                MatchupVideoRecord,
+                canonical_video_record_id(
+                    player_champion_id, opponent_champion_id, video.videoUrl
+                ),
+            ) or session.get(MatchupVideoRecord, video.id)
             existing_model: VideoMetadataAnalysis | None = None
             if record is not None:
                 existing_model = _metadata_record_to_model(
@@ -633,10 +662,13 @@ def save_manual_video_metadata(
         engine = get_engine()
         ensure_database_seeded(engine, seed_videos)
         with Session(engine) as session:
-            record = session.get(MatchupVideoRecord, video.id)
+            record_id = canonical_video_record_id(
+                player_champion_id, opponent_champion_id, video.videoUrl
+            )
+            record = session.get(MatchupVideoRecord, record_id)
             if record is None:
                 record = MatchupVideoRecord(
-                    id=video.id,
+                    id=record_id,
                     player_champion_id=player_champion_id,
                     opponent_champion_id=opponent_champion_id,
                     title=video.title,

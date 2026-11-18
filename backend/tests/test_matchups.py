@@ -15,7 +15,7 @@ def clear_matchup_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     database.set_engine(engine)
     matchups.clear_seeded_cache()
     matchups.load_matchups.cache_clear()
-    youtube_search._cached_youtube_search.cache_clear()
+    youtube_search.clear_search_cache()
     monkeypatch.setattr(
         matchups, "search_youtube_matchup_candidates", lambda *args, **kwargs: []
     )
@@ -24,12 +24,17 @@ def clear_matchup_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
         "fetch_and_analyze_youtube_video",
         lambda *args, **kwargs: video_analysis.VideoMetadataAnalysis(),
     )
+    from app.rate_limit import limiter
+
+    limiter.reset()
+    monkeypatch.setenv("RATE_LIMIT_MULTIPLIER", "0")
     yield
+    limiter.reset()
     engine.dispose()
     database.set_engine(None)
     matchups.clear_seeded_cache()
     matchups.load_matchups.cache_clear()
-    youtube_search._cached_youtube_search.cache_clear()
+    youtube_search.clear_search_cache()
 
 
 def test_matchup_returns_empty_items_for_valid_champions_without_replays() -> None:
@@ -43,14 +48,62 @@ def test_matchup_returns_empty_items_for_valid_champions_without_replays() -> No
     }
 
 
-def test_matchup_returns_catalog_entries_from_playlist() -> None:
+def _offer_as_candidates(monkeypatch: pytest.MonkeyPatch, *videos: dict) -> None:
+    offered = {
+        (v["playerChampionId"], v["opponentChampionId"], v["videoUrl"]) for v in videos
+    }
+    monkeypatch.setattr(
+        matchups,
+        "was_offered_as_candidate",
+        lambda player, opponent, url: (player, opponent, url) in offered,
+    )
+
+
+def _seed_item(video_id: str, player: str, opponent: str) -> dict:
+    return {
+        "id": f"{player.lower()}-vs-{opponent.lower()}-{video_id}",
+        "playerChampionId": player,
+        "opponentChampionId": opponent,
+        "title": f"{player} Top vs {opponent} - KR Master Patch 26.16",
+        "videoUrl": f"https://www.youtube.com/watch?v={video_id}",
+        "channelName": "Example Channel",
+        "channelUrl": "https://www.youtube.com/@example",
+        "publishedAt": None,
+        "gamePatch": "26.16",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/@example/playlists",
+    }
+
+
+def _use_seed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, items: list[dict]) -> None:
+    data_file = tmp_path / "seed_matchups.json"
+    data_file.write_text(json.dumps({"items": items}), encoding="utf-8")
+    monkeypatch.setattr(matchups, "MATCHUPS_PATH", data_file)
+    matchups.load_matchups.cache_clear()
+    matchups.clear_seeded_cache()
+
+
+def test_shipped_seed_catalog_is_empty_and_valid() -> None:
+    payload = json.loads(matchups.MATCHUPS_PATH.read_text(encoding="utf-8"))
+
+    assert payload == {"items": []}
+    assert matchups.load_matchups() == ()
+
+
+def test_matchup_returns_seeded_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo01", "Darius", "KSante")])
+
     response = get("/api/v1/matchups/Darius/KSante")
 
     assert response.status_code == 200
     body = response.json()
     assert body["playerChampionId"] == "Darius"
     assert body["opponentChampionId"] == "KSante"
-    assert len(body["items"]) >= 1
+    assert len(body["items"]) == 1
     assert all(item["verificationStatus"] == "verified" for item in body["items"])
 
 
@@ -78,7 +131,7 @@ def test_matchup_returns_only_verified_ordered_records(
                 "playerChampionId": "Aatrox",
                 "opponentChampionId": "Darius",
                 "title": "Aatrox Top vs Darius - KR Challenger",
-                "videoUrl": "https://www.youtube.com/watch?v=abc123XYZ",
+                "videoUrl": "https://www.youtube.com/watch?v=abcdef12345XYZ",
                 "channelName": "Challenger Replays",
                 "channelUrl": "https://www.youtube.com/@ChallengerReplays",
                 "publishedAt": "2026-11-01T12:00:00Z",
@@ -175,8 +228,10 @@ def test_matchup_returns_503_when_data_source_is_invalid(
 
 
 def test_matchup_does_not_call_youtube_when_saved_replay_exists(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo02", "Singed", "TahmKench")])
+
     def fail_if_called(*args, **kwargs):
         raise AssertionError(
             "YouTube search must not be called when saved replays already exist"
@@ -186,7 +241,7 @@ def test_matchup_does_not_call_youtube_when_saved_replay_exists(
         matchups, "search_youtube_matchup_candidates", fail_if_called
     )
 
-    # Singed vs TahmKench has only 1 saved replay in matchups.json, and must still skip YouTube search.
+    # A single saved replay is enough to skip the YouTube search.
     response = get("/api/v1/matchups/Singed/TahmKench")
 
     assert response.status_code == 200
@@ -196,8 +251,10 @@ def test_matchup_does_not_call_youtube_when_saved_replay_exists(
 
 
 def test_matchup_fetches_additional_candidates_only_when_explicitly_requested(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo03", "Singed", "TahmKench")])
+
     monkeypatch.setattr(
         matchups,
         "search_youtube_matchup_candidates",
@@ -477,6 +534,8 @@ def test_upvote_persists_youtube_candidate_to_database_and_toggles_vote(
         "origin": "youtube_search",
     }
 
+    _offer_as_candidates(monkeypatch, candidate_payload)
+
     # 1. Upvote a YouTube candidate video
     upvote_response = post(
         "/api/v1/matchups/Aatrox/Darius/upvote",
@@ -519,7 +578,9 @@ def test_upvote_persists_youtube_candidate_to_database_and_toggles_vote(
     assert unvoted_item["upvotedByViewer"] is False
 
 
-def test_saved_videos_are_sorted_by_upvote_count_descending() -> None:
+def test_saved_videos_are_sorted_by_upvote_count_descending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     video_older_patch = {
         "id": "yt-aatrox-vs-darius-older",
         "playerChampionId": "Aatrox",
@@ -553,6 +614,8 @@ def test_saved_videos_are_sorted_by_upvote_count_descending() -> None:
         "origin": "youtube_search",
     }
 
+    _offer_as_candidates(monkeypatch, video_older_patch, video_newer_patch)
+
     # Save newer patch with 1 vote, older patch with 2 votes
     post(
         "/api/v1/matchups/Aatrox/Darius/upvote",
@@ -570,9 +633,10 @@ def test_saved_videos_are_sorted_by_upvote_count_descending() -> None:
     response = get("/api/v1/matchups/Aatrox/Darius")
     assert response.status_code == 200
     items = response.json()["items"]
+    # Stored ids are derived from the YouTube video id, not from the client-supplied id.
     assert [item["id"] for item in items] == [
-        "yt-aatrox-vs-darius-older",
-        "yt-aatrox-vs-darius-newer",
+        "yt-aatrox-vs-darius-older20",
+        "yt-aatrox-vs-darius-newer22",
     ]
     assert [item["upvoteCount"] for item in items] == [2, 1]
 
@@ -682,11 +746,11 @@ def test_game_assets_and_manual_metadata_persistence(
     assert len(assets_data["starterItems"]) >= 10
 
     video_payload = {
-        "id": "yt-aatrox-vs-darius-meta1",
+        "id": "yt-aatrox-vs-darius-metavideo01",
         "playerChampionId": "Aatrox",
         "opponentChampionId": "Darius",
         "title": "Aatrox Top vs Darius - KR Challenger Patch 26.22",
-        "videoUrl": "https://www.youtube.com/watch?v=meta1",
+        "videoUrl": "https://www.youtube.com/watch?v=metavideo01",
         "channelName": "Challenger Replays",
         "channelUrl": "https://www.youtube.com/@ChallengerReplays",
         "publishedAt": None,
@@ -766,11 +830,11 @@ def test_sorcery_keystones_match_current_catalog_and_legacy_alias() -> None:
 
 
 VIDEO_PAYLOAD = {
-    "id": "yt-aatrox-vs-darius-guard1",
+    "id": "yt-aatrox-vs-darius-guardvideo1",
     "playerChampionId": "Aatrox",
     "opponentChampionId": "Darius",
     "title": "Aatrox Top vs Darius - KR Challenger Patch 26.22",
-    "videoUrl": "https://www.youtube.com/watch?v=guard1",
+    "videoUrl": "https://www.youtube.com/watch?v=guardvideo1",
     "channelName": "Challenger Replays",
     "channelUrl": "https://www.youtube.com/@ChallengerReplays",
     "publishedAt": None,
@@ -872,6 +936,7 @@ def test_analyze_skips_youtube_when_metadata_already_saved(
 ) -> None:
     calls = _count_fetches(monkeypatch)
     video = {**VIDEO_PAYLOAD, "id": "yt-aatrox-vs-darius-cache1"}
+    _offer_as_candidates(monkeypatch, video)
     post_url = "/api/v1/matchups/Aatrox/Darius/upvote"
     assert (
         post(post_url, {"video": video, "voterToken": "voter-cache-12345"}).status_code
@@ -955,11 +1020,11 @@ def test_description_is_fetched_via_data_api_when_key_is_set(
     monkeypatch.setattr(video_analysis, "urlopen", fake_urlopen)
 
     analysis = video_analysis.fetch_and_analyze_youtube_video(
-        "https://www.youtube.com/watch?v=abc123"
+        "https://www.youtube.com/watch?v=abcdef12345"
     )
 
     assert seen["url"].startswith("https://www.googleapis.com/youtube/v3/videos?")
-    assert "id=abc123" in seen["url"] and "key=test-key" in seen["url"]
+    assert "id=abcdef12345" in seen["url"] and "key=test-key" in seen["url"]
     assert analysis.summonerSpells == ["SummonerTeleport", "SummonerFlash"]
 
 
@@ -973,7 +1038,7 @@ def test_description_fetch_failure_returns_unanalyzed(
     monkeypatch.setattr(video_analysis, "urlopen", failing_urlopen)
 
     analysis = video_analysis.fetch_and_analyze_youtube_video(
-        "https://www.youtube.com/watch?v=abc123"
+        "https://www.youtube.com/watch?v=abcdef12345"
     )
 
     assert analysis.analysisStatus == "unanalyzed"
@@ -991,3 +1056,74 @@ def test_cors_origins_are_configurable_from_environment(
         "CORS_ALLOW_ORIGINS", " https://wintop.example.com/ ,https://x.vercel.app,"
     )
     assert get_cors_origins() == ["https://wintop.example.com", "https://x.vercel.app"]
+
+
+def test_upvote_rejects_videos_the_server_never_offered() -> None:
+    fabricated = {**VIDEO_PAYLOAD, "videoUrl": "https://www.youtube.com/watch?v=neveroffered"}
+
+    response = post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-abuse-12345", "video": fabricated},
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "invalid_upvote"
+    assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
+
+
+def test_video_payload_rejects_non_youtube_links_and_oversized_fields() -> None:
+    cases = {
+        "foreign channel link": {**VIDEO_PAYLOAD, "channelUrl": "https://evil.example.com/x"},
+        "foreign source link": {**VIDEO_PAYLOAD, "sourceUrl": "https://evil.example.com/x"},
+        "junk video id": {**VIDEO_PAYLOAD, "videoUrl": "https://www.youtube.com/watch?v=../../etc"},
+        "oversized title": {**VIDEO_PAYLOAD, "title": "Aatrox Top vs Darius " + "A" * 5000},
+        "too many timestamps": {
+            **VIDEO_PAYLOAD,
+            "metadata": {
+                "analysisStatus": "auto_parsed",
+                "timestamps": [
+                    {"timeSeconds": 1, "timeLabel": "0:01", "label": "x"}
+                ]
+                * 301,
+            },
+        },
+    }
+
+    for name, video in cases.items():
+        response = post(
+            "/api/v1/matchups/Aatrox/Darius/analyze", {"video": video}
+        )
+        assert response.status_code == 422, name
+
+
+def test_rate_limit_blocks_bursts_and_can_be_disabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.rate_limit import limiter
+
+    limiter.reset()
+    monkeypatch.setenv("RATE_LIMIT_MULTIPLIER", "1")
+    video = {**VIDEO_PAYLOAD}
+    statuses = [
+        post("/api/v1/matchups/Aatrox/Darius/analyze", {"video": video}).status_code
+        for _ in range(12)
+    ]
+
+    assert statuses[:10] == [200] * 10
+    assert statuses[10:] == [429, 429]
+
+    monkeypatch.setenv("RATE_LIMIT_MULTIPLIER", "0")
+    assert (
+        post("/api/v1/matchups/Aatrox/Darius/analyze", {"video": video}).status_code
+        == 200
+    )
+    limiter.reset()
+
+
+def test_oversized_request_body_is_rejected_with_413() -> None:
+    huge = {**VIDEO_PAYLOAD, "title": "Aatrox Top vs Darius " + "A" * 100_000}
+
+    response = post("/api/v1/matchups/Aatrox/Darius/analyze", {"video": huge})
+
+    assert response.status_code == 413
+    assert response.json()["detail"]["code"] == "payload_too_large"

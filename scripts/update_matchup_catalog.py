@@ -8,9 +8,6 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 from urllib.request import Request, urlopen
 
-DEFAULT_PLAYLIST_URL = (
-    "https://www.youtube.com/playlist?list=PLPUygacvheSMnrKWezkRVrYaJbBSHWYJ4"
-)
 ROOT_DIR = Path(__file__).resolve().parents[1]
 CHAMPIONS_PATH = ROOT_DIR / "backend/src/app/data/champions.json"
 OUTPUT_PATH = ROOT_DIR / "backend/src/app/data/matchups.json"
@@ -232,8 +229,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--playlist",
-        default=DEFAULT_PLAYLIST_URL,
-        help="YouTube playlist URL or playlist ID",
+        required=True,
+        help="YouTube playlist URL or playlist ID (no default is bundled)",
     )
     parser.add_argument(
         "--feed-file",

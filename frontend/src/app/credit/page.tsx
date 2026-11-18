@@ -39,15 +39,7 @@ export default function CreditPage() {
           </li>
           <li>
             リプレイ動画: YouTube
-            上の公開動画へのリンクと埋め込みです。動画の複製や再配布は行っていません。初期データは{" "}
-            <a
-              href="https://www.youtube.com/@ChallengerReplays"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Challenger Replays
-            </a>{" "}
-            のプレイリストから選んでいます。動画の著作権は各投稿者に帰属します。
+            上の公開動画へのリンクと埋め込みです。動画の複製や再配布は行っていません。動画の著作権は各投稿者に帰属します。
           </li>
           <li>
             ルーン・スペル・タイムラインは、動画の概要欄の記載から自動で抽出しています。

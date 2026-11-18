@@ -22,15 +22,15 @@ USER_AGENT = (
 class RuneSelection(BaseModel):
     primaryStyleId: int | None = None
     subStyleId: int | None = None
-    primarySelections: list[int] = Field(default_factory=list)
-    subSelections: list[int] = Field(default_factory=list)
-    statShards: list[int] = Field(default_factory=list)
+    primarySelections: list[int] = Field(default_factory=list, max_length=6)
+    subSelections: list[int] = Field(default_factory=list, max_length=3)
+    statShards: list[int] = Field(default_factory=list, max_length=3)
 
 
 class VideoTimestamp(BaseModel):
-    timeSeconds: int = Field(ge=0)
-    timeLabel: str = Field(min_length=1)
-    label: str = Field(min_length=1)
+    timeSeconds: int = Field(ge=0, le=86400)
+    timeLabel: str = Field(min_length=1, max_length=16)
+    label: str = Field(min_length=1, max_length=200)
     isKillEvent: bool = False
 
 
@@ -39,9 +39,9 @@ class VideoMetadataAnalysis(BaseModel):
         "unanalyzed"
     )
     runes: RuneSelection | None = None
-    summonerSpells: list[str] = Field(default_factory=list)
-    startingItems: list[str] = Field(default_factory=list)
-    timestamps: list[VideoTimestamp] = Field(default_factory=list)
+    summonerSpells: list[str] = Field(default_factory=list, max_length=2)
+    startingItems: list[str] = Field(default_factory=list, max_length=6)
+    timestamps: list[VideoTimestamp] = Field(default_factory=list, max_length=300)
 
 
 @lru_cache(maxsize=1)
