@@ -1152,3 +1152,141 @@ def test_client_supplied_id_cannot_target_another_saved_video(
     assert response.status_code == 400
     items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
     assert [item["upvoteCount"] for item in items] == [1]
+
+
+def _fake_data_api(monkeypatch: pytest.MonkeyPatch, search_items: list[dict], durations: dict[str, str]):
+    """Stub the two YouTube Data API endpoints and record the requested URLs."""
+    urls: list[str] = []
+
+    def fake_fetch(url: str, timeout: float = 8.0) -> str:
+        urls.append(url)
+        if "/youtube/v3/search?" in url:
+            return json.dumps({"items": search_items})
+        if "/youtube/v3/videos?" in url:
+            return json.dumps(
+                {
+                    "items": [
+                        {"id": vid, "contentDetails": {"duration": iso}}
+                        for vid, iso in durations.items()
+                    ]
+                }
+            )
+        raise AssertionError(f"unexpected URL {url}")
+
+    monkeypatch.setattr(youtube_search, "_fetch_text", fake_fetch)
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-key")
+    return urls
+
+
+def _search_item(video_id: str, title: str) -> dict:
+    return {
+        "id": {"videoId": video_id},
+        "snippet": {
+            "title": title,
+            "channelId": "UCexample123",
+            "channelTitle": "Example Replays",
+            "publishedAt": "2026-11-01T00:00:00Z",
+        },
+    }
+
+
+def test_data_api_titles_are_html_unescaped_before_matching(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    urls = _fake_data_api(
+        monkeypatch,
+        [_search_item("chogath0001", "Cho&#39;Gath Top vs Gwen - KR Master Patch 26.16")],
+        {"chogath0001": "PT26M5S"},
+    )
+
+    results = youtube_search.search_youtube_matchup_candidates("Chogath", "Gwen")
+
+    assert [r["title"] for r in results] == [
+        "Cho'Gath Top vs Gwen - KR Master Patch 26.16"
+    ]
+    assert results[0]["gamePatch"] == "26.16"
+    assert any("/youtube/v3/search?" in u for u in urls)
+
+
+def test_data_api_does_not_limit_search_to_medium_length_videos(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    urls = _fake_data_api(
+        monkeypatch,
+        [_search_item("longreplay1", "Aatrox Top vs Darius - KR Master Patch 26.21")],
+        {"longreplay1": "PT34M12S"},
+    )
+
+    results = youtube_search.search_youtube_matchup_candidates("Aatrox", "Darius")
+
+    search_url = next(u for u in urls if "/youtube/v3/search?" in u)
+    assert "videoDuration" not in search_url
+    assert len(results) == 1
+
+
+def test_data_api_drops_videos_shorter_than_ten_minutes_or_of_unknown_length(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _fake_data_api(
+        monkeypatch,
+        [
+            _search_item("shortclip01", "Aatrox Top vs Darius - 3 minute highlight"),
+            _search_item("longreplay1", "Aatrox Top vs Darius - KR Master Patch 26.21"),
+            _search_item("unknownlen1", "Aatrox Top vs Darius - KR Master Patch 26.20"),
+        ],
+        {"shortclip01": "PT3M10S", "longreplay1": "PT26M1S"},
+    )
+
+    results = youtube_search.search_youtube_matchup_candidates("Aatrox", "Darius")
+
+    assert [r["videoUrl"][-11:] for r in results] == ["longreplay1"]
+
+
+def test_parse_iso8601_duration() -> None:
+    parse = youtube_search.parse_iso8601_duration
+    assert parse("PT26M5S") == 26 * 60 + 5
+    assert parse("PT1H2M3S") == 3723
+    assert parse("PT45S") == 45
+    assert parse("P0D") == 0
+    assert parse("garbage") is None
+    assert parse(None) is None
+
+
+def test_empty_search_results_are_cached_only_briefly(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = {"n": 0}
+
+    def fake_uncached(player_id, opponent_id, max_results):
+        calls["n"] += 1
+        return ()
+
+    clock = {"t": 1000.0}
+    monkeypatch.setattr(youtube_search, "_search_uncached", fake_uncached)
+    monkeypatch.setattr(youtube_search.time, "monotonic", lambda: clock["t"])
+
+    youtube_search._cached_youtube_search("Aatrox", "Darius", 5)
+    youtube_search._cached_youtube_search("Aatrox", "Darius", 5)
+    assert calls["n"] == 1, "an empty result is still reused within the short window"
+
+    clock["t"] += youtube_search.EMPTY_RESULT_TTL_SECONDS + 1
+    youtube_search._cached_youtube_search("Aatrox", "Darius", 5)
+    assert calls["n"] == 2, "an empty result must expire far sooner than 6 hours"
+    assert youtube_search.EMPTY_RESULT_TTL_SECONDS < 600
+
+
+def test_data_api_failure_is_logged_with_the_reason(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    def failing_fetch(url: str, timeout: float = 8.0) -> str:
+        raise OSError("HTTP Error 403: quotaExceeded")
+
+    monkeypatch.setattr(youtube_search, "_fetch_text", failing_fetch)
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-key")
+
+    with caplog.at_level("WARNING"):
+        results = youtube_search.search_youtube_matchup_candidates("Aatrox", "Darius")
+
+    assert results == []
+    assert "test-key" not in caplog.text, "the API key must never be written to logs"
+    assert "Aatrox" in caplog.text and "quotaExceeded" in caplog.text

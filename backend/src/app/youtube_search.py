@@ -1,3 +1,4 @@
+import html
 import json
 import logging
 import os
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 YOUTUBE_SEARCH_URL = "https://www.youtube.com/results"
 YOUTUBE_API_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
+YOUTUBE_API_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 MIN_REPLAY_DURATION_SECONDS = 600
 
 NON_TOP_LANE_PATTERN = re.compile(
@@ -74,6 +76,22 @@ def extract_channel_trust_score(channel_name: str) -> int:
     if "replay" in normalized or "vod" in normalized:
         return 1
     return 0
+
+
+ISO8601_DURATION_PATTERN = re.compile(
+    r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$"
+)
+
+
+def parse_iso8601_duration(value: str | None) -> int | None:
+    """Parse the contentDetails.duration format of the YouTube Data API (e.g. PT26M5S)."""
+    if not value:
+        return None
+    match = ISO8601_DURATION_PATTERN.fullmatch(value.strip().upper())
+    if not match:
+        return None
+    days, hours, minutes, seconds = (int(part or 0) for part in match.groups())
+    return days * 86400 + hours * 3600 + minutes * 60 + seconds
 
 
 def parse_duration_seconds(duration_text: str | None) -> int | None:
@@ -280,6 +298,22 @@ def parse_youtube_initial_data(
     return candidates[:max_results]
 
 
+def _fetch_durations_via_data_api(api_key: str, video_ids: list[str]) -> dict[str, int]:
+    """videos.list costs 1 quota unit per call for up to 50 ids."""
+    if not video_ids:
+        return {}
+    params = urlencode(
+        {"part": "contentDetails", "id": ",".join(video_ids[:50]), "key": api_key}
+    )
+    payload = json.loads(_fetch_text(f"{YOUTUBE_API_VIDEOS_URL}?{params}"))
+    durations: dict[str, int] = {}
+    for item in payload.get("items", []):
+        seconds = parse_iso8601_duration(item.get("contentDetails", {}).get("duration"))
+        if item.get("id") and seconds is not None:
+            durations[item["id"]] = seconds
+    return durations
+
+
 def _search_via_data_api(
     api_key: str,
     query: str,
@@ -287,13 +321,14 @@ def _search_via_data_api(
     opponent: Champion,
     max_results: int,
 ) -> list[dict[str, Any]]:
+    # No videoDuration filter: "medium" means 4 to 20 minutes and would drop most full
+    # replays. Length is checked afterwards from contentDetails instead.
     params = urlencode(
         {
             "part": "snippet",
             "type": "video",
             "videoEmbeddable": "true",
-            "videoDuration": "medium",
-            "maxResults": max(max_results * 3, 15),
+            "maxResults": max(max_results * 5, 25),
             "q": query,
             "key": api_key,
         }
@@ -302,17 +337,26 @@ def _search_via_data_api(
     public_source_url = f"{YOUTUBE_SEARCH_URL}?search_query={quote_plus(query)}"
     payload = json.loads(_fetch_text(request_url))
 
-    now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
-    candidates: list[dict[str, Any]] = []
+    matched: list[tuple[str, str, dict[str, Any]]] = []
     for item in payload.get("items", []):
         video_id = item.get("id", {}).get("videoId")
         snippet = item.get("snippet", {})
-        title = (snippet.get("title") or "").strip()
+        # The Data API returns titles HTML-escaped (Cho&#39;Gath); unescape before matching.
+        title = html.unescape(snippet.get("title") or "").strip()
         if not video_id or not title:
             continue
         if not title_matches_matchup(title, player, opponent):
             continue
+        matched.append((video_id, title, snippet))
 
+    durations = _fetch_durations_via_data_api(api_key, [m[0] for m in matched])
+
+    now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+    candidates: list[dict[str, Any]] = []
+    for video_id, title, snippet in matched:
+        # Unknown length is dropped too, mirroring the HTML path's 10 minute minimum.
+        if durations.get(video_id, 0) < MIN_REPLAY_DURATION_SECONDS:
+            continue
         channel_id = (snippet.get("channelId") or "").strip()
         channel_url = (
             f"https://www.youtube.com/channel/{channel_id}"
@@ -327,7 +371,7 @@ def _search_via_data_api(
                 "opponentChampionId": opponent.id,
                 "title": title,
                 "videoUrl": f"https://www.youtube.com/watch?v={video_id}",
-                "channelName": (snippet.get("channelTitle") or "YouTube").strip(),
+                "channelName": html.unescape(snippet.get("channelTitle") or "YouTube").strip(),
                 "channelUrl": channel_url,
                 "publishedAt": published_at,
                 "gamePatch": extract_patch_from_title(title),
@@ -349,6 +393,8 @@ def build_search_query(player: Champion, opponent: Champion) -> str:
 
 SEARCH_CACHE_MAX_ENTRIES = 256
 SEARCH_CACHE_TTL_SECONDS = 6 * 3600
+# A failed or empty lookup must not stick for hours; retry soon.
+EMPTY_RESULT_TTL_SECONDS = 120
 _search_cache: "OrderedDict[tuple[str, str, int], tuple[float, tuple[dict[str, Any], ...]]]" = OrderedDict()
 _search_cache_lock = threading.Lock()
 
@@ -386,6 +432,10 @@ def _search_uncached(
     )
 
 
+def _ttl_for(items: tuple[dict[str, Any], ...]) -> int:
+    return SEARCH_CACHE_TTL_SECONDS if items else EMPTY_RESULT_TTL_SECONDS
+
+
 def _cached_youtube_search(
     player_id: str, opponent_id: str, max_results: int
 ) -> tuple[dict[str, Any], ...]:
@@ -393,7 +443,7 @@ def _cached_youtube_search(
     now = time.monotonic()
     with _search_cache_lock:
         entry = _search_cache.get(key)
-        if entry and now - entry[0] < SEARCH_CACHE_TTL_SECONDS:
+        if entry and now - entry[0] < _ttl_for(entry[1]):
             _search_cache.move_to_end(key)
             return entry[1]
 
@@ -418,7 +468,7 @@ def was_offered_as_candidate(
         for (player_id, opponent_id, _), (stored_at, items) in _search_cache.items():
             if (player_id, opponent_id) != (player_champion_id, opponent_champion_id):
                 continue
-            if now - stored_at >= SEARCH_CACHE_TTL_SECONDS:
+            if now - stored_at >= _ttl_for(items):
                 continue
             if any(item.get("videoUrl") == video_url for item in items):
                 return True
@@ -436,11 +486,13 @@ def search_youtube_matchup_candidates(
                 player_champion_id, opponent_champion_id, max_results
             )
         )
-    except Exception:
+    except Exception as error:
+        # Never log the request URL: it carries the API key.
         logger.warning(
-            "YouTube candidate search failed for %s vs %s",
+            "YouTube candidate search failed for %s vs %s: %s: %s",
             player_champion_id,
             opponent_champion_id,
-            exc_info=True,
+            type(error).__name__,
+            str(error)[:200],
         )
         return []
