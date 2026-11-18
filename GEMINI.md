@@ -1,6 +1,13 @@
 # Gemini project handoff
 
-Read this file and `LoLタイマン勝てるのツール.md` before changing the project. For the Phase 1 API and UI behavior, also read `docs/phase1-data-contract.md`. For current status, setup on a new machine, known issues, and next steps, read `docs/HANDOFF.md` and `docs/phase2-roadmap.md`.
+Read this file and `LoLタイマン勝てるのツール.md` before changing the project. For the Phase 1 API and UI behavior, also read `docs/phase1-data-contract.md`. For current status, setup on a new machine, known issues, and next steps, read `docs/HANDOFF.md` and `docs/phase2-roadmap.md`. The master spec's chapters 8 and 9 (`LoLタイマン勝てるのツール.md`) hold the task list (TASK-xxx), decisions (DEC-xxx), open questions (TBD-xxx), and issues (ISSUE-xxx); keep them in sync with `docs/HANDOFF.md` when status changes.
+
+## Current status (as of 2026-11-18)
+
+- Phase 1 (MVP): functionally done; data contract rewritten (DEC-009), credit page `/credit` added. Remaining before public release: issue a YouTube Data API key (TASK-005; code is ready), Riot policy check (TASK-006), perform the AWS deployment (TASK-007; code, Docker setup, and runbook are ready).
+- Phase 2A (description analysis): done. `PUT /metadata` requires `ADMIN_TOKEN` (Bearer); starter items come only from a `Starter Items:` line or manual entry; `analyze` does not refetch saved metadata.
+- Phase 2B (image recognition of starting items): not started.
+- Phase 3 and 4: not started.
 
 ## Project
 
@@ -31,7 +38,7 @@ Read this file and `LoLタイマン勝てるのツール.md` before changing the
 
 ## Next work
 
-See `docs/HANDOFF.md` section 6. In short: verify setup on the new machine; resolve the data-policy mismatch between `docs/phase1-data-contract.md` and the YouTube candidate/UV flow; protect `PUT /metadata`; mark or drop heuristic starter items; then start Phase 2B (image recognition of starting items) after confirming a policy-compliant way to obtain video frames.
+TASK-001 to 004 and 008 to 011 are done. Deployment is the current work (decided 2026-11-17: deploy before Phase 2B): the environment is chosen (DEC-012: one EC2 t4g.small, Docker Compose with Caddy, Next.js, FastAPI, MySQL; HTTP first, HTTPS once a domain exists), the repo is refactored for it (`compose.prod.yaml`, `deploy/`, Dockerfiles, same-origin API via empty `NEXT_PUBLIC_API_BASE_URL`, `CORS_ALLOW_ORIGINS`, Data API for descriptions), and the runbook is `docs/DEPLOY_PRIVATE.md` (Git-ignored, so it does not travel with the repo). Remaining: the user prepares the AWS account (no AWS credentials are configured on this machine) and the actual deployment; then TASK-005/006 follow-ups; then TASK-012 (Phase 2B). If AWS blocks progress, fall back to Vercel (runbook section 9). See `docs/HANDOFF.md` section 6 and the master spec section 8.2.
 
 Do not implement account features, Riot account linking, or lane recommendations without an explicit request.
 
@@ -55,16 +62,19 @@ VS Code tasks are in `.vscode/tasks.json`; `Dev: Start app` starts the API and f
 Checks:
 
 ```sh
-cd frontend && npm run lint && npm run build
+cd frontend && npm run lint && npm test && npm run build
 ```
 
 ```sh
 .venv/bin/python -m pytest -q backend/tests
 ```
 
+Frontend unit tests: `cd frontend && npm test`. DB migrations: see `database/README.md` (Alembic).
+
 ## Handoff state
 
-- Latest commit before this handoff doc: `a777791` (Phase 2A). Step history: `5ea1c82` on-demand YouTube candidates, `52375db` candidate filtering/scoring, `94e6b1f` upvote + MySQL persistence, `a777791` Phase 2A.
-- Backend tests: 24 passing. Frontend lint and production build pass.
-- Not transferred via Git: `.env`, `frontend/.env.local`, `phase1-source-research.md`, MySQL volume data.
+- Last feature commit (before the 2026-11-17 changes): `a777791` (Phase 2A); `703cb3c` and `bcbf61a` added the handoff docs. Step history: `5ea1c82` on-demand YouTube candidates, `52375db` candidate filtering/scoring, `94e6b1f` upvote + MySQL persistence, `a777791` Phase 2A. Run `git log` for the current HEAD.
+- Backend tests: 34 passing. Frontend: `npm test` (Vitest, 19 tests), lint, and production build pass (2026-11-17: Python 3.14, Node 22, MySQL 100 seeded rows). Not yet checked by eye in a browser.
+- On macOS with Homebrew + Colima, use `docker-compose` (no `docker compose` plugin) and run Node via `mise exec node@22 -- npm …`.
+- Not transferred via Git: `docs/DEPLOY_PRIVATE.md`, `deploy/.env`, `.env` (set `ADMIN_TOKEN` to enable manual metadata saving), `frontend/.env.local`, `phase1-source-research.md`, MySQL volume data.
 - Keep changes surgical, update related documentation, and run the focused checks. Ask before changing product scope or data-source policy.

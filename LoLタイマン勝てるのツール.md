@@ -14,8 +14,8 @@
 | 項目  | 内容  |
 | --- | --- |
 | Project Name | wintop-wingame |
-| Repository | 未定  |
-| Status | Planning |
+| Repository | https://github.com/as-key-bar/lol_wintop_wingame |
+| Status | In Development（Phase 1 ほぼ完了 / Phase 2A 実装済み。詳細は 8 章） |
 | Project Owner | askey |
 | Start Date | 2026-11-10 |
 | Target Environment | Web Application |
@@ -237,8 +237,8 @@ lv7までの、各レベルの主導権や、各ウェーブのプッシュ、�
 
 | データソース | 用途  | 取得方法 | 利用条件 |
 | --- | --- | --- | --- |
-| Youtube | Topプレイヤーのリプレイ映像URLを収集する | 未検討 | 未確認 |
-| 未検討 | League of Legendsに存在する全チャンピオンの名前とアイコンを収集する | 未検討 | 未確認<br>著作権や利用ガイドラインなども要調査 |
+| Youtube | Topプレイヤーのリプレイ映像URLを収集する。Phase 2Aでは動画の概要欄からルーン・スペル・タイムスタンプも取得する | Challenger Replaysのプレイリストから初期100件を取得（`scripts/update_matchup_catalog.py`）。候補検索は`YOUTUBE_API_KEY`設定時はYouTube Data API v3、未設定時は検索ページのHTML解析 | HTML解析は規約・仕様変更のリスクあり。公開前にAPIへの移行と規約確認が必要（9.3 ISSUE-002）。動画のダウンロード・ミラー・再配布は行わない |
+| Riot Data Dragon | チャンピオン・ルーン・スペル・アイテムの名前とアイコンを収集する | 生成スクリプトでバージョン付きJSON化（`update_champion_catalog.py`、`update_game_assets_catalog.py`）。現在16.22.1 | 公開前にRiot Developer Portalへの登録と、現行ポリシー・表示義務の再確認が必要。UIにData Dragonの出典とRiot非公認の注記を表示済み |
 
 ## 4.2 データ項目
 
@@ -272,16 +272,29 @@ lv7までの、各レベルの主導権や、各ウェーブのプッシュ、�
 | --- | --- | --- |
 | Frontend | Next.js | <br> |
 | Backend | python | Analysisと共通化 |
-| Database | AWS MySQL | 学習のため |
-| Hosting | AWS | 学習のため |
+| Database | MySQL 8.4（同じ EC2 上のコンテナ） | 無料枠に収めるため RDS ではなくコンテナ。RDS への移行は将来の選択肢 |
+| Hosting | AWS（EC2 単一インスタンス、Docker Compose） | 学習のため。構成は DEC-012 |
 | Analysis（映像解析・phase2以降） | python | ライブラリが豊富なため |
 | CI/CD | Github | 無料なため、なれているため |
 
 ## 5.2 システム構成
 
-\[システム構成図・各コンポーネントの関係\]
+現状（ローカル開発構成）：
 
-未検討
+```
+ブラウザ → Next.js (:3000) → FastAPI (:8000) → MySQL 8.4 (Docker, :3306)
+                                  ├─ Riot Data Dragon（生成済みJSON: champions.json / game_assets.json）
+                                  └─ YouTube（候補検索・概要欄の取得。YOUTUBE_API_KEY 設定時は Data API v3）
+```
+
+本番構成（DEC-012）：
+
+```
+ブラウザ → Caddy(:80/:443) ─┬→ /api/* → FastAPI(:8000) → MySQL(:3306)
+            （EC2 t4g.small 1台） └→ その他  → Next.js(:3000)
+```
+
+構成ファイルは `compose.prod.yaml`、`deploy/`。手順は非公開の `docs/DEPLOY_PRIVATE.md`。
 
 ## 5.3 ディレクトリ構成
 
@@ -299,7 +312,9 @@ project/
 
 | サービス | 用途  | 認証方法 | 備考  |
 | --- | --- | --- | --- |
-| 未検討 | <br> | <br> | <br> |
+| Riot Data Dragon | チャンピオン・ルーン・スペル・アイテムのカタログ | 認証なし（静的CDN） | 更新は手動実行し差分を確認する |
+| YouTube（視聴ページ・検索ページ） | 動画候補の検索、概要欄の取得 | 認証なし | HTML解析。規約リスクあり（ISSUE-002） |
+| YouTube Data API v3 | 候補検索（任意） | 環境変数`YOUTUBE_API_KEY` | 未設定ならHTML解析にフォールバック |
 
 ## 5.5 セキュリティ方針
 
@@ -367,28 +382,52 @@ AI開発エージェントは以下を遵守する。
 
 # 8\. Task Management
 
+> 詳細な現状・セットアップ・既知の課題は [docs/HANDOFF.md](docs/HANDOFF.md)、Phase 2 の進捗は [docs/phase2-roadmap.md](docs/phase2-roadmap.md) を参照。本章は要約であり、更新時は両文書と整合させる。
+
 ## 8.1 現在の開発フェーズ
 
-Phase: \[Phase番号\]
+Phase: Phase 1（MVP）の仕上げ中 ＋ Phase 2A（概要欄の解析）実装済み
 
-Status: \[Not Started / In Progress / Completed\]
+Status: In Progress（2026-11-17 時点）
+
+| Phase | 状態 | 備考 |
+| --- | --- | --- |
+| Phase 1 | In Progress（ほぼ完了） | 機能・データ契約・クレジット画面は完了。未完了：公開前の作業（YouTube Data API への移行、Riot ポリシーの確認、AWS デプロイ）。HANDOFF 5 章参照 |
+| Phase 2A | Completed | ルーン9枠・スペル・タイムスタンプの抽出と表示、手動編集（管理者トークン必須） |
+| Phase 2B | Not Started | スタートアイテムの画像認識。映像の取得方法と規約の確認が先 |
+| Phase 3 / 4 | Not Started | — |
 
 ## 8.2 実装タスク
 
 | Task ID | タスク | 優先度 | 状態  | 備考  |
 | --- | --- | --- | --- | --- |
-| TASK-001 | \[タスク名\] | High | Todo | <br> |
-| TASK-002 | \[タスク名\] | Medium | Todo | <br> |
+| TASK-001 | データ方針の確定と `phase1-data-contract.md` の改訂（YouTube候補の `verified` 扱い、MySQL永続化、metadata API、ビルド情報の各フィールド） | High | Done | 完了（2026-11-17）。方針は DEC-009。契約書を改訂 |
+| TASK-002 | `PUT /metadata` の保護（管理者トークン、または投票方式） | High | Done | 完了（2026-11-17）。方針は DEC-010。`ADMIN_TOKEN` による保護 |
+| TASK-003 | 推定したスタートアイテムの「推定」表示、または抽出の廃止 | High | Done | 完了（2026-11-17）。`Build:` 行からの推定を廃止し、`Starter Items:` 行と手動登録のみにした |
+| TASK-004 | 取得済みビルド情報がある動画で `analyze` を省略（キャッシュ） | Medium | Done | 完了（2026-11-17）。保存済みなら `analyze` でYouTubeにアクセスしない。`manual_verified` は上書きしない |
+| TASK-005 | YouTube HTML解析から YouTube Data API v3 への移行と規約確認 | High | In Progress | ISSUE-002。コードは対応済み（候補検索と概要欄の取得の両方が `YOUTUBE_API_KEY` で Data API を使う）。API キーの発行と規約の確認が残る |
+| TASK-006 | Riot Developer Portalへの登録、現行ポリシーと必須表示の確認 | High | Todo | 公開前に必須 |
+| TASK-007 | AWS（MySQL / ホスティング）へのデプロイ方針の決定と実施 | High | In Progress | 構成の決定（DEC-012）、リファクタ、手順書は完了（2026-11-18）。AWS アカウントの準備と実際のデプロイが残る。手順は非公開の `docs/DEPLOY_PRIVATE.md` |
+| TASK-008 | クレジット画面（SCR-006）の作成 | Medium | Done | 完了（2026-11-17）。`/credit` を新設しフッターからリンク |
+| TASK-009 | ステータスシャード定義とアイコンの目視確認 | Low | Done | 完了（2026-11-17）。CommunityDragon の `perkstyles.json` と ID を照合し、テストで固定。アイコンURLは7件とも HTTP 200 |
+| TASK-010 | DBマイグレーション（Alembic）の導入検討 | Low | Done | 完了（2026-11-17）。`backend/migrations/` に Alembic を導入 |
+| TASK-011 | フロントエンドのテスト導入 | Low | Done | 完了（2026-11-17）。Vitest + Testing Library を導入（16件） |
+| TASK-012 | Phase 2B-1：HUDからのスタートアイテム画像認識の試作 | Medium | Todo | TASK-001〜004 の後。映像取得の規約確認が前提 |
 
 ## 8.3 直近のタスク
 
-- \[タスク1\]
-- \[タスク2\]
-- \[タスク3\]
+1. 画面での目視確認（UV、概要欄の自動取得、管理者トークンを入れた手動保存、`/credit`）。自動テストと本番ビルドは通過済みだが、ブラウザでの確認は未実施。
+2. 公開前の作業（外部作業が必要）：TASK-005（YouTube Data API。APIキーの取得が必要）、TASK-006（Riot Developer Portal への登録）、TASK-007（AWS の構成判断）。
+3. TASK-012：Phase 2B-1。映像フレームの取得方法の規約確認が先（TBD-004）。
 
 ## 8.4 完了済みタスク
 
-- \[完了タスク\]
+- Phase 1：チャンピオン選択と検索（日本語・英語・ローマ字）、マッチアップ画面（動画切替、16:9の埋め込み、外部リンク）、エラー・空状態の表示
+- Phase 1：マッチアップ動画API、初期データ100件（Challenger Replays）、MySQL永続化とJSONへのフォールバック
+- Phase 1：オンデマンドのYouTube候補検索、UV（高評価トグル）と候補のDB保存
+- Phase 1：Data Dragonの出典とRiot非公認の注記の表示
+- 2026-11-17：TASK-001〜004、008〜011（データ方針の確定と契約書の改訂、`PUT /metadata` の保護、スタートアイテム推定の廃止、`analyze` のキャッシュ、クレジット画面、シャード定義の照合、Alembic、フロントエンドテスト）
+- Phase 2A：Data Dragonからのゲームアセットカタログ（2A-1）、概要欄の解析（2A-2）、`matchup_video_metadata` と `analyze` / `metadata` API（2A-3）、ビルド表示パネル（2A-4）
 
 * * *
 
@@ -398,19 +437,42 @@ Status: \[Not Started / In Progress / Completed\]
 
 | ID  | 日付  | 決定内容 | 理由  |
 | --- | --- | --- | --- |
-| DEC-001 | \[日付\] | \[内容\] | \[理由\] |
+| DEC-001 | 2026-11-10 | チャンピオンの名前・アイコンは Riot Data Dragon を出典とし、IDで関連付ける | 公式の静的データでパッチ追従が容易 |
+| DEC-002 | 2026-11-10 | 動画は YouTube 視聴ページへのリンクと埋め込みのみ。ダウンロード・ミラー・サムネイルの複製・再配布は行わない | 著作権・利用規約への配慮 |
+| DEC-003 | 2026-11-11 | 動画の初期データは Challenger Replays のプレイリスト（The Solo Top）から取得する | 1.2 の方針に沿ったソース |
+| DEC-004 | 2026-11-11 | YouTube候補の検索は、保存済み動画が0件のとき、または利用者の操作時のみ実行する | YouTube への不要なアクセスを避ける |
+| DEC-005 | 2026-11-11 | UV（高評価トグル）を追加し、UVされた候補は即時にDBへ `verified` として保存する | 利用者の評価で確認済み動画を蓄積する。承認済みの仕様追加（仕様書の元の範囲外）。契約書は未改訂 |
+| DEC-006 | 2026-11-11 | DBはPhase 1からMySQLで永続化し、DB未接続時は閲覧のみJSONで継続する | 4.3 の保存方針と、5.1 の学習目的に沿う |
+| DEC-007 | 2026-11-11 | Phase 2 を 2A（概要欄の解析）と 2B（画像認識）に分ける | 取得方法によって難しさが大きく違うため。ロードマップ参照 |
+| DEC-008 | 2026-11-11 | 取得できる範囲を、ルーン9枠、スペル、タイムスタンプ（2A）とし、ファーストアイテムとウェーブ管理は2B以降とする | 概要欄の情報だけで取れる範囲を先に提供する |
+| DEC-009 | 2026-11-17 | YouTube検索の候補は、タイトル条件を満たせば `verified` として表示し、UVで保存する（現状追認）。取得元バッジで区別する | TBD-001 の決定。管理者確認を必須にすると運用負荷が高く、UVを確認の代わりにする。契約書を改訂済み |
+| DEC-010 | 2026-11-17 | `PUT /metadata` は環境変数 `ADMIN_TOKEN` による管理者トークンで保護する。未設定なら無効（403） | TBD-002 の決定。実装が小さく、Phase 4 のアカウント機能まではこれで足りる |
+| DEC-011 | 2026-11-17 | スタートアイテムは `Starter Items:` 行または手動登録のみとし、試合終了時の `Build:` 行からは推定しない | 4.4「推測値を確定情報として表示しない」に従う |
+| DEC-012 | 2026-11-18 | デプロイ先は AWS の単一 EC2（t4g.small, Amazon Linux 2023）に Docker Compose（Caddy、Next.js、FastAPI、MySQL）で載せる。まず HTTP（IP直アクセス）で始め、ドメイン取得後に HTTPS 化する | コスト優先（Free Plan のクレジットで $0）と、仕様書 5.1 の AWS 方針を両立。構成が単純で移行が容易。AWS で進められない場合は Vercel を使う（手順書 §9） |
+| DEC-013 | 2026-11-18 | UV の投票者はブラウザの `voterToken` のみで識別し、クライアント IP は使わない | リバースプロキシ配下では IP が不安定で、TBD-005 の問題（IP が変わると別人扱い）を解消できる。トークンを消せば再投票できる点は許容 |
 
 ## 9.2 未決定事項
 
 | ID  | 項目  | 検討内容 | 優先度 |
 | --- | --- | --- | --- |
-| TBD-001 | \[項目\] | \[内容\] | High |
+| TBD-003 | 6か月後の継続方法 | Free Plan は 6 か月（またはクレジット消化）で終わりアカウントが閉鎖される。有料プランへ移行するか、Vercel ＋ 他の無料 DB へ移すか | Medium |
+| TBD-004 | 映像フレームの取得方法 | 2B で、規約を守りつつ動画のフレームをどう取得するか | Medium |
+| TBD-006 | 動画リンクの有効性確認 | 確認の頻度と運用方法 | Low |
 
 ## 9.3 既知の課題・リスク
 
 | ID  | 課題  | 影響  | 対応方針 |
 | --- | --- | --- | --- |
-| ISSUE-001 | \[課題\] | \[影響\] | \[対応\] |
+| ISSUE-001 | データ方針と契約書・GEMINI.mdの記述が実装と食い違っている | 公開前に方針が不明確なまま、未確認動画を確認済みとして表示するおそれ | 解決（TASK-001、DEC-009） |
+| ISSUE-002 | `YOUTUBE_API_KEY` 未設定時は YouTube の HTML を直接解析している | 規約違反やブロックのリスク。HTML構造の変更で動かなくなる | YouTube Data API v3 へ移行し、規約を確認（TASK-005） |
+| ISSUE-003 | `PUT /metadata` に認証がない | 誰でもビルド情報を上書きでき、`manual_verified` にできる | 解決（TASK-002、DEC-010） |
+| ISSUE-004 | スタートアイテムを、試合終了時の装備から推定している | 推測値を確定情報として表示するおそれ（4.4 違反） | 解決（TASK-003、DEC-011）。ただし、スタートアイテムの自動取得は Phase 2B の画像認識まで行わない |
+| ISSUE-005 | 概要欄の取得結果をキャッシュしていない | 同じ動画で `analyze` のたびにYouTubeへアクセスする | 解決（TASK-004） |
+| ISSUE-006 | ステータスシャードの定義とアイコンが現在のゲーム内表示と一致するか未確認 | 誤った表示のおそれ | 解決（TASK-009）。ID とアイコンURLを確認し、テストで固定 |
+| ISSUE-007 | UV の投票者の識別が不安定（TBD-005） | 同じ人が複数回投票できる | 解決（DEC-013） |
+| ISSUE-008 | DBマイグレーションの仕組みがない | 列の変更に対応できない | 解決（TASK-010） |
+| ISSUE-009 | フロントエンドのテストがない | 画面の確認が手動のみ | 解決（TASK-011）。現在はユーティリティとビルドパネルのみ。ページ全体のテストは未整備 |
+| ISSUE-010 | 仕様書と実装の画面構成が異なる | SCR-002（相手選択）は独立画面でなくトップ画面内の2つ目のピッカー、SCR-006（クレジット）はフッター表示のみ。ダークモードは、ダークテーマ固定で実装（切り替えなし） | 差異を許容するか、仕様書の画面一覧を実装に合わせて改訂する |
 
 * * *
 
@@ -418,7 +480,10 @@ Status: \[Not Started / In Progress / Completed\]
 
 | Version | Date | Changes |
 | --- | --- | --- |
-| 0.1 | \[日付\] | Initial Draft |
+| 0.1 | 2026-11-10 | Initial Draft |
+| 0.2 | 2026-11-16 | 引継ぎに合わせて更新。1.1（Repository、Status）、4.1・5.4（データソース、外部サービス）、第8〜9章（フェーズ、タスク、決定事項、未決事項、課題）を実装状況に合わせて記入 |
+| 0.3 | 2026-11-17 | TASK-001〜004、008〜011 の完了を反映。DEC-009〜011 を追加し、TBD-001・002 を決定済みに |
+| 0.4 | 2026-11-18 | デプロイ構成（DEC-012）を決定し、本番用の Docker 構成、ドメイン・環境変数の整理、手順書を追加。TASK-005 のコードを対応、TASK-007 を進行中に。DEC-012・013 を追加 |
 
 * * *
 
