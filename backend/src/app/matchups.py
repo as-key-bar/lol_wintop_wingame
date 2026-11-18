@@ -482,17 +482,13 @@ def toggle_matchup_video_upvote(
         engine = get_engine()
         ensure_database_seeded(engine, seed_videos)
         with Session(engine) as session:
+            # Look the row up by the server-derived key only; a client-supplied id must
+            # never select a row whose video differs from the submitted videoUrl.
             record = session.scalar(
                 select(MatchupVideoRecord).where(
-                    (MatchupVideoRecord.id == video.id)
-                    | (
-                        (MatchupVideoRecord.player_champion_id == player_champion_id)
-                        & (
-                            MatchupVideoRecord.opponent_champion_id
-                            == opponent_champion_id
-                        )
-                        & (MatchupVideoRecord.video_url == video.videoUrl)
-                    )
+                    MatchupVideoRecord.player_champion_id == player_champion_id,
+                    MatchupVideoRecord.opponent_champion_id == opponent_champion_id,
+                    MatchupVideoRecord.video_url == video.videoUrl,
                 )
             )
             if record is None:

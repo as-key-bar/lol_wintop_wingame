@@ -1127,3 +1127,28 @@ def test_oversized_request_body_is_rejected_with_413() -> None:
 
     assert response.status_code == 413
     assert response.json()["detail"]["code"] == "payload_too_large"
+
+
+def test_client_supplied_id_cannot_target_another_saved_video(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real = {**VIDEO_PAYLOAD, "videoUrl": "https://www.youtube.com/watch?v=realvideo001"}
+    _offer_as_candidates(monkeypatch, real)
+    saved = post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-real-12345", "video": real},
+    ).json()
+
+    spoofed = {
+        **real,
+        "id": saved["id"],
+        "videoUrl": "https://www.youtube.com/watch?v=neveroffer1",
+    }
+    response = post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-spoof-12345", "video": spoofed},
+    )
+
+    assert response.status_code == 400
+    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
+    assert [item["upvoteCount"] for item in items] == [1]
