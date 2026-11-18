@@ -16,7 +16,7 @@
 > Git の管理対象外のため、GitHub 経由では引き継がれないファイルがあります。
 > - `.env`（`.env.example` からコピーして作成）、`frontend/.env.local`（`frontend/.env.example` からコピー）
 > - `phase1-source-research.md`（データソース調査の長文メモ。`.gitignore` に記載あり。必要なら別の手段で移してください）
-> - MySQL のデータ（Docker volume `mysql_data`）。UV や手動で登録したビルド情報は移りません。初期データは起動時に `matchups.json` から自動でシードされます。
+> - MySQL のデータ（Docker volume `mysql_data`）。UV や手動で登録したビルド情報は移りません。初期データは同梱しておらず、DB は空から始まります（動画は検索候補への UV で貯まります）。
 
 ## 2. 新しいマシンでのセットアップ
 
@@ -89,7 +89,7 @@ cd frontend && npm run lint && npm test && npm run build
 
 ### データ
 - [`champions.json`](../backend/src/app/data/champions.json)：Data Dragon 16.22.1 から生成（`scripts/update_champion_catalog.py`）。
-- [`matchups.json`](../backend/src/app/data/matchups.json)：Challenger Replays のプレイリストから取得した初期データ100件（`scripts/update_matchup_catalog.py`）。DB に自動でシードされる。
+- [`matchups.json`](../backend/src/app/data/matchups.json)：公開に備えて**空**のまま同梱している（第三者のチャンネルのデータを載せないため）。取り込む場合は `scripts/update_matchup_catalog.py --playlist <URL>`。動画は、検索候補への UV で DB に貯まる。
 - [`game_assets.json`](../backend/src/app/data/game_assets.json)：Data Dragon 16.22.1 から生成（`scripts/update_game_assets_catalog.py`）。ステータスシャードとスタートアイテムの一覧は、スクリプトに直接書いた定義を使用。旧名の別名（例：Phase Rush → 嵐乗りの勇躍）は `aliases` に持たせている。
 - DB（[`schema.sql`](../database/schema.sql)、[`database.py`](../backend/src/app/database.py)）：`matchup_videos`、`matchup_video_votes`、`matchup_video_metadata` の3テーブル。テーブルは起動時に `Base.metadata.create_all` で作られる。列の変更は Alembic（`backend/migrations/`、[`database/README.md`](../database/README.md) 参照）で行う。
 

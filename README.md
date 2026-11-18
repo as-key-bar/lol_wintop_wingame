@@ -91,7 +91,7 @@ pytest backend/tests
 
 チャンピオン一覧APIは `GET /api/v1/champions?q=<検索語>` です。`q` は日本語名・英語名・登録済み別名・ローマ字表記を部分一致検索します。
 
-マッチアップ動画APIは `GET /api/v1/matchups/{playerChampionId}/{opponentChampionId}` です。MySQLの `matchup_videos` テーブル（初期データは `backend/src/app/data/matchups.json` から自動シード、DB未接続時はJSONにフォールバック）に保存された `verificationStatus: "verified"` のレコードを優先して返し、保存済み動画が0件の場合または `?includeCandidates=true` 指定時のみYouTube検索候補を補完します。また、`POST /api/v1/matchups/{playerChampionId}/{opponentChampionId}/upvote` で動画をUV（高評価トグル）すると、候補動画も即座にDBへ確認済みとして蓄積されます。プレイリストから初期マッチアップ一覧を更新する場合は `python3 scripts/update_matchup_catalog.py` を実行してください。
+マッチアップ動画APIは `GET /api/v1/matchups/{playerChampionId}/{opponentChampionId}` です。MySQLの `matchup_videos` テーブル（`backend/src/app/data/matchups.json` に動画があれば起動時に投入されます。同梱のファイルは空です。DB未接続時はJSONにフォールバック）に保存された `verificationStatus: "verified"` のレコードを優先して返し、保存済み動画が0件の場合または `?includeCandidates=true` 指定時のみYouTube検索候補を補完します。また、`POST /api/v1/matchups/{playerChampionId}/{opponentChampionId}/upvote` で動画をUV（高評価トグル）すると、候補動画も即座にDBへ確認済みとして蓄積されます。プレイリストから初期マッチアップ一覧を更新する場合は `python3 scripts/update_matchup_catalog.py` を実行してください。
 
 Phase 2Aで追加したAPIは次のとおりです。
 

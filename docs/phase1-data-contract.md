@@ -10,7 +10,7 @@ Phase 1は、チャンピオン選択結果に対応する確認済みリプレ�
 
 動画の出どころは次の2つで、どちらも YouTube 視聴ページへのリンクと埋め込みのみを扱う。動画ファイル・サムネイルの複製や再配布は行わない。
 
-- **保存済み（`origin: "saved"`）**: DB（`matchup_videos`）に `verified` として保存された動画。初期データは `matchups.json`（Challenger Replays のプレイリストを手動で選別）から起動時に投入する。
+- **保存済み（`origin: "saved"`）**: DB（`matchup_videos`）に `verified` として保存された動画。`backend/src/app/data/matchups.json` に動画があれば起動時に投入する。公開に備えて、同梱のファイルは空にしている（第三者のチャンネルのデータを載せない）。取り込む場合は `scripts/update_matchup_catalog.py --playlist <URL>`。
 - **YouTube検索の候補（`origin: "youtube_search"`）**: 保存済みが0件のとき、または利用者が「YouTube候補を検索」を押したときだけ、YouTube を検索して得る。タイトルがマッチアップ条件（下記）を満たしたものだけを返す。管理者による個別確認は行わない。
 
 **候補を `verified` として扱う方針（決定: 2026-11-17）**: 検索候補は、タイトル条件を満たせば `verificationStatus: "verified"` として表示する。利用者が UV（👍 参考になった）を押すと、その候補は `verified` の保存済み動画として DB に保存され、次回から優先して表示される。UV を人による確認の代わりとして扱うため、画面では取得元バッジ（`DB保存済` / `YouTube検索`）で区別して示す。YouTube の検索は `YOUTUBE_API_KEY` があれば Data API v3、なければ検索ページの HTML 解析で行う（HTML 解析は規約・仕様変更のリスクがあるため、公開前に API へ移行する。TASK-005）。

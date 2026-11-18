@@ -1,0 +1,10 @@
+# Test fixtures use obviously fake voter tokens such as "voter-one-12345".
+title = "wintop-wingame gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake voterToken values used only in backend tests"
+paths = ['''backend/tests/.*''']
+regexes = ['''voter-[a-z]+-\d+''']
