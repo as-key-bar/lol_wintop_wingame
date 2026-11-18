@@ -21,6 +21,7 @@ class MatchupVideoRecord(Base):
     __tablename__ = "matchup_videos"
     __table_args__ = (
         Index("idx_matchup_pair", "player_champion_id", "opponent_champion_id"),
+        Index("idx_matchup_fetched_at", "fetched_at"),
     )
 
     id: Mapped[str] = mapped_column(String(191), primary_key=True)
@@ -41,6 +42,8 @@ class MatchupVideoRecord(Base):
     )
     source_url: Mapped[str] = mapped_column(String(512), nullable=False)
     upvote_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # When the YouTube-derived fields were fetched; drives the retention limit.
+    fetched_at: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
 class MatchupVideoVoteRecord(Base):

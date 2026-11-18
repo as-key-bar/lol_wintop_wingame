@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.champions import get_champion_ids, load_catalog
+from app.retention import now_iso, parse_iso, retention_days
 from app.database import (
     Base,
     MatchupVideoMetadataRecord,
@@ -199,6 +200,7 @@ def ensure_database_seeded(engine: Engine, seed_videos: tuple[MatchupVideo, ...]
                 embed_status=video.embedStatus,
                 source_url=video.sourceUrl,
                 upvote_count=video.upvoteCount,
+                fetched_at=now_iso(),
             )
             for video in seed_videos
             if video.id not in existing_ids
@@ -354,6 +356,14 @@ def _load_saved_matchup_videos(
                     MatchupVideoRecord.verification_status == "verified",
                 )
             ).all()
+            # Never serve a row past the retention limit, even if the purge job is late.
+            limit = datetime.now(timezone.utc) - timedelta(days=retention_days())
+            records = [
+                r
+                for r in records
+                if (parse_iso(r.fetched_at) or datetime.min.replace(tzinfo=timezone.utc))
+                > limit
+            ]
 
             upvoted_ids: set[str] = set()
             meta_by_id: dict[str, MatchupVideoMetadataRecord] = {}
@@ -517,6 +527,7 @@ def toggle_matchup_video_upvote(
                     embed_status=video.embedStatus,
                     source_url=video.sourceUrl,
                     upvote_count=0,
+                    fetched_at=now_iso(),
                 )
                 session.add(record)
                 session.flush()
@@ -678,6 +689,7 @@ def save_manual_video_metadata(
                     embed_status=video.embedStatus,
                     source_url=video.sourceUrl,
                     upvote_count=video.upvoteCount,
+                    fetched_at=now_iso(),
                 )
                 session.add(record)
                 session.flush()

@@ -72,6 +72,14 @@ VS Codeでは、コマンドパレットから **Tasks: Run Task → Dev: Start 
 
 AWS の EC2 1台に Docker Compose で載せる構成を用意しています（`compose.prod.yaml`、`deploy/`、`backend/Dockerfile`、`frontend/Dockerfile`）。環境変数の雛形は `deploy/env.example` です。実際の値は `deploy/.env`（Git 管理外）に書きます。デプロイ手順は非公開の `docs/DEPLOY_PRIVATE.md`（Git 管理外）にまとめています。
 
+## YouTube データの保存期限
+
+YouTube API で取得したデータ（動画のタイトル・チャンネル・URL、概要欄から抽出したビルド、その動画への UV）は、YouTube API Services Developer Policies III.E.4 に従い、**取得から28日で自動削除**します（上限は30日。`YOUTUBE_DATA_RETENTION_DAYS` で短くできますが、30を超える値は30に丸められます）。更新（再取得）はせず、単純に削除します。
+
+- 削除は `python -m app.retention`（本番は systemd のタイマー、毎日 04:00 JST。`deploy/install-retention-timer.sh`）。
+- 期限切れの行は、削除ジョブが遅れても、API が返しません。
+- 管理者が手動で保存したビルドも、動画の行と一緒に消えます。
+
 ## バージョン管理
 
 リポジトリ直下の `VERSION` に `0.<フェーズ>.<プッシュ番号>` の形式で書きます。

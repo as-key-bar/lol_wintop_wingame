@@ -1290,3 +1290,154 @@ def test_data_api_failure_is_logged_with_the_reason(
     assert results == []
     assert "test-key" not in caplog.text, "the API key must never be written to logs"
     assert "Aatrox" in caplog.text and "quotaExceeded" in caplog.text
+
+
+# --- retention (YouTube API Services Developer Policies III.E.4: at most 30 days) ---
+
+from datetime import datetime, timedelta, timezone  # noqa: E402
+
+from app import retention  # noqa: E402
+from app.database import (  # noqa: E402
+    MatchupVideoMetadataRecord,
+    MatchupVideoRecord,
+    MatchupVideoVoteRecord,
+)
+from sqlalchemy.orm import Session  # noqa: E402
+
+
+def _iso_days_ago(days: float) -> str:
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat(timespec="seconds")
+
+
+def _add_saved_video(video_id: str, fetched_days_ago: float, votes: int = 1) -> str:
+    """Insert a saved video with a vote and an auto-extracted build, as the app would."""
+    record_id = f"yt-aatrox-vs-darius-{video_id}"
+    engine = database.get_engine()
+    matchups.ensure_database_seeded(engine, ())
+    with Session(engine) as session:
+        session.add(
+            MatchupVideoRecord(
+                id=record_id,
+                player_champion_id="Aatrox",
+                opponent_champion_id="Darius",
+                title="Aatrox Top vs Darius - KR Master Patch 26.21",
+                video_url=f"https://www.youtube.com/watch?v={video_id}",
+                channel_name="c",
+                channel_url="https://www.youtube.com/@c",
+                verified_at=_iso_days_ago(fetched_days_ago),
+                verification_status="verified",
+                embed_status="unknown",
+                source_url="https://www.youtube.com/results",
+                upvote_count=votes,
+                fetched_at=_iso_days_ago(fetched_days_ago),
+            )
+        )
+        for n in range(votes):
+            session.add(MatchupVideoVoteRecord(video_record_id=record_id, voter_hash=f"h{n}{video_id}"))
+        session.add(
+            MatchupVideoMetadataRecord(
+                video_record_id=record_id,
+                analysis_status="auto_parsed",
+                summoner_spells_json='["SummonerFlash"]',
+                updated_at=_iso_days_ago(fetched_days_ago),
+            )
+        )
+        session.commit()
+    return record_id
+
+
+def _counts() -> tuple[int, int, int]:
+    with Session(database.get_engine()) as session:
+        return (
+            session.query(MatchupVideoRecord).count(),
+            session.query(MatchupVideoVoteRecord).count(),
+            session.query(MatchupVideoMetadataRecord).count(),
+        )
+
+
+def test_retention_defaults_to_28_days_and_never_exceeds_the_30_day_policy_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("YOUTUBE_DATA_RETENTION_DAYS", raising=False)
+    assert retention.retention_days() == 28
+
+    monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "14")
+    assert retention.retention_days() == 14
+
+    monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "365")
+    assert retention.retention_days() == 30, "a larger value must be capped at the policy limit"
+
+    monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "0")
+    assert retention.retention_days() == 1
+    monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "not-a-number")
+    assert retention.retention_days() == 28
+
+
+def test_purge_deletes_only_expired_rows_together_with_votes_and_builds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("YOUTUBE_DATA_RETENTION_DAYS", raising=False)
+    _add_saved_video("freshvideo1", fetched_days_ago=1, votes=2)
+    _add_saved_video("edgefresh01", fetched_days_ago=27, votes=1)
+    _add_saved_video("edgestale01", fetched_days_ago=29, votes=3)
+    _add_saved_video("oldvideo001", fetched_days_ago=90, votes=1)
+    assert _counts() == (4, 7, 4)
+
+    removed = retention.purge_expired()
+
+    assert removed == {"videos": 2, "votes": 4, "metadata": 2}
+    assert _counts() == (2, 3, 2)
+    with Session(database.get_engine()) as session:
+        left = sorted(r.id[-11:] for r in session.query(MatchupVideoRecord))
+    assert left == ["edgefresh01", "freshvideo1"]
+
+
+def test_purge_removes_rows_with_an_unreadable_date(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("YOUTUBE_DATA_RETENTION_DAYS", raising=False)
+    record_id = _add_saved_video("brokendate1", fetched_days_ago=1)
+    with Session(database.get_engine()) as session:
+        session.get(MatchupVideoRecord, record_id).fetched_at = "not a date"
+        session.commit()
+
+    retention.purge_expired()
+
+    assert _counts() == (0, 0, 0), "an unknown age must be treated as expired"
+
+
+def test_purge_handles_dates_written_with_different_utc_offsets() -> None:
+    record_id = _add_saved_video("offsetvideo", fetched_days_ago=1)
+    stale_jst = (
+        (datetime.now(timezone.utc) - timedelta(days=29)).astimezone(timezone(timedelta(hours=9)))
+    ).isoformat(timespec="seconds")
+    with Session(database.get_engine()) as session:
+        session.get(MatchupVideoRecord, record_id).fetched_at = stale_jst
+        session.commit()
+
+    retention.purge_expired()
+
+    assert _counts()[0] == 0
+
+
+def test_expired_rows_are_not_served_even_before_the_purge_runs() -> None:
+    _add_saved_video("servedfresh", fetched_days_ago=2)
+    _add_saved_video("servedstale", fetched_days_ago=40)
+
+    response = get("/api/v1/matchups/Aatrox/Darius")
+
+    urls = [item["videoUrl"][-11:] for item in response.json()["items"]]
+    assert urls == ["servedfresh"], "a row past the limit must be hidden at read time"
+
+
+def test_new_rows_record_when_the_data_was_fetched(monkeypatch: pytest.MonkeyPatch) -> None:
+    video = {**VIDEO_PAYLOAD, "videoUrl": "https://www.youtube.com/watch?v=stampedvid1"}
+    _offer_as_candidates(monkeypatch, video)
+
+    post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-stamp-12345", "video": video},
+    )
+
+    with Session(database.get_engine()) as session:
+        stamped = session.query(MatchupVideoRecord).one().fetched_at
+    age = datetime.now(timezone.utc) - datetime.fromisoformat(stamped)
+    assert abs(age) < timedelta(minutes=1)

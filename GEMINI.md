@@ -42,6 +42,10 @@ TASK-001 to 004 and 008 to 011 are done. Deployment is the current work (decided
 
 Do not implement account features, Riot account linking, or lane recommendations without an explicit request.
 
+## YouTube data retention
+
+Everything fetched from the YouTube API (video title/channel/URL rows, builds extracted from descriptions, and the votes attached to those rows) is deleted 28 days after `matchup_videos.fetched_at` (hard cap 30, policy III.E.4.c/d; see DEC-016). No refresh, plain deletion. `app/retention.py` does it (`python -m app.retention`; production runs it from a systemd timer, `deploy/install-retention-timer.sh`) and `_load_saved_matchup_videos` also hides expired rows. Any new code that stores YouTube-derived data must set `fetched_at` and be covered by the purge. Frame/video analysis is NOT allowed without prior written approval from YouTube (see the terms research in the Phase 2B notes).
+
 ## Versioning
 
 `VERSION` (repo root) is `0.<phase>.<push number>`: the first number stays `0` until release, the second is the current phase (now `2`), and the third **must be bumped on every push to `main`**. It is shown in the footer (`v0.2.1`, commit in the tooltip) and at `GET /api/version`; `deploy/update.sh` passes it and the commit into the build. Run `./scripts/install-git-hooks.sh` once per clone: its pre-push hook rejects a push to `main` when `VERSION` is unchanged (`--no-verify` to skip). Bump `VERSION` in the same commit as the change, or in a final commit before pushing.

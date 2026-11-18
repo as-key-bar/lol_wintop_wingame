@@ -43,6 +43,7 @@ services:
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
       RATE_LIMIT_MULTIPLIER: ${RATE_LIMIT_MULTIPLIER:-1}
+      YOUTUBE_DATA_RETENTION_DAYS: ${YOUTUBE_DATA_RETENTION_DAYS:-28}
     depends_on:
       mysql:
         condition: service_healthy
