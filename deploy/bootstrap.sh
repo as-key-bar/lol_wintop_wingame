@@ -13,6 +13,17 @@ sudo curl -fsSL "https://github.com/docker/compose/releases/latest/download/dock
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
+# Compose v5 requires buildx 0.17 or later, which Amazon Linux's docker package does not ship.
+case "$arch" in
+  aarch64) buildx_arch=arm64 ;;
+  x86_64) buildx_arch=amd64 ;;
+  *) echo "Unsupported architecture: $arch" >&2; exit 1 ;;
+esac
+BUILDX_VERSION=v0.39.0
+sudo curl -fsSL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-${buildx_arch}" \
+  -o /usr/local/lib/docker/cli-plugins/docker-buildx
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
+
 # 1 GiB swap protects the 1-2 GiB instance from out-of-memory kills during builds.
 if ! swapon --show | grep -q /swapfile; then
   sudo fallocate -l 1G /swapfile
