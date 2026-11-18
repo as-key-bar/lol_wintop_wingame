@@ -85,10 +85,9 @@ def set_engine(engine: Engine | None) -> None:
     _engine = engine
 
 
-def compute_voter_hash(voter_token: str | None, client_host: str | None = None) -> str | None:
+def compute_voter_hash(voter_token: str | None) -> str | None:
     token = (voter_token or "").strip()
     if not token:
         return None
-    raw = f"{token}:{client_host or 'local'}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 

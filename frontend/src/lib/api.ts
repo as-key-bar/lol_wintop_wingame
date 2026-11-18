@@ -117,8 +117,23 @@ export type MatchupResponse = {
   items: MatchupVideo[];
 };
 
-export const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+// An empty NEXT_PUBLIC_API_BASE_URL means "same origin" (production behind the
+// reverse proxy); unset falls back to the local API for development.
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+function resolveApiBaseUrl(): string {
+  if (configuredApiBaseUrl === undefined) {
+    return "http://localhost:8000";
+  }
+  if (configuredApiBaseUrl === "") {
+    return typeof window === "undefined"
+      ? "http://localhost:3000"
+      : window.location.origin;
+  }
+  return configuredApiBaseUrl;
+}
+
+export const apiBaseUrl = resolveApiBaseUrl();
 
 export function formatIsoDate(value: string): string {
   const match = /^(\d{4}-\d{2}-\d{2})/.exec(value.trim());

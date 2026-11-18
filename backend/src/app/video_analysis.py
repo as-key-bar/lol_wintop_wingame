@@ -1,16 +1,18 @@
 import json
 import logging
+import os
 import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 GAME_ASSETS_PATH = Path(__file__).parent / "data" / "game_assets.json"
+YOUTUBE_API_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -410,13 +412,22 @@ def extract_description_from_watch_html(html_text: str) -> str:
     return ""
 
 
-def fetch_and_analyze_youtube_video(video_url: str) -> VideoMetadataAnalysis:
-    parsed = urlparse(video_url)
-    video_ids = parse_qs(parsed.query).get("v", [])
-    if not video_ids or not video_ids[0].strip():
-        return VideoMetadataAnalysis()
+def _fetch_description_via_data_api(video_id: str, api_key: str) -> str:
+    query = urlencode({"part": "snippet", "id": video_id, "key": api_key})
+    request = Request(
+        f"{YOUTUBE_API_VIDEOS_URL}?{query}", headers={"User-Agent": USER_AGENT}
+    )
+    with urlopen(request, timeout=10) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    items = payload.get("items") or []
+    if not items:
+        return ""
+    description = items[0].get("snippet", {}).get("description")
+    return description if isinstance(description, str) else ""
 
-    watch_url = f"https://www.youtube.com/watch?v={video_ids[0].strip()}"
+
+def _fetch_description_via_watch_page(video_id: str) -> str:
+    watch_url = f"https://www.youtube.com/watch?v={video_id}"
     request = Request(
         watch_url,
         headers={
@@ -424,14 +435,29 @@ def fetch_and_analyze_youtube_video(video_url: str) -> VideoMetadataAnalysis:
             "User-Agent": USER_AGENT,
         },
     )
+    with urlopen(request, timeout=10) as response:
+        html_text = response.read().decode("utf-8", errors="replace")
+    return extract_description_from_watch_html(html_text)
+
+
+def fetch_and_analyze_youtube_video(video_url: str) -> VideoMetadataAnalysis:
+    parsed = urlparse(video_url)
+    video_ids = parse_qs(parsed.query).get("v", [])
+    if not video_ids or not video_ids[0].strip():
+        return VideoMetadataAnalysis()
+    video_id = video_ids[0].strip()
+
+    api_key = os.getenv("YOUTUBE_API_KEY", "").strip()
     try:
-        with urlopen(request, timeout=10) as response:
-            html_text = response.read().decode("utf-8", errors="replace")
+        description = (
+            _fetch_description_via_data_api(video_id, api_key)
+            if api_key
+            else _fetch_description_via_watch_page(video_id)
+        )
     except Exception:
-        logger.warning("Failed to fetch YouTube watch page for metadata: %s", watch_url)
+        logger.warning("Failed to fetch YouTube description for video %s", video_id)
         return VideoMetadataAnalysis()
 
-    description = extract_description_from_watch_html(html_text)
     if not description:
         return VideoMetadataAnalysis()
 

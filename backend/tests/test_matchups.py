@@ -921,3 +921,73 @@ def test_stat_shard_rows_match_current_game_layout() -> None:
         [5011, 5013, 5001],
     ]
 
+
+def test_description_is_fetched_via_data_api_when_key_is_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: dict[str, str] = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self) -> bytes:
+            return json.dumps(
+                {
+                    "items": [
+                        {
+                            "snippet": {
+                                "description": "Spells: Teleport Flash\n"
+                            }
+                        }
+                    ]
+                }
+            ).encode()
+
+    def fake_urlopen(request, timeout=0):
+        seen["url"] = request.full_url
+        return FakeResponse()
+
+    monkeypatch.setenv("YOUTUBE_API_KEY", "test-key")
+    monkeypatch.setattr(video_analysis, "urlopen", fake_urlopen)
+
+    analysis = video_analysis.fetch_and_analyze_youtube_video(
+        "https://www.youtube.com/watch?v=abc123"
+    )
+
+    assert seen["url"].startswith("https://www.googleapis.com/youtube/v3/videos?")
+    assert "id=abc123" in seen["url"] and "key=test-key" in seen["url"]
+    assert analysis.summonerSpells == ["SummonerTeleport", "SummonerFlash"]
+
+
+def test_description_fetch_failure_returns_unanalyzed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def failing_urlopen(request, timeout=0):
+        raise OSError("blocked")
+
+    monkeypatch.delenv("YOUTUBE_API_KEY", raising=False)
+    monkeypatch.setattr(video_analysis, "urlopen", failing_urlopen)
+
+    analysis = video_analysis.fetch_and_analyze_youtube_video(
+        "https://www.youtube.com/watch?v=abc123"
+    )
+
+    assert analysis.analysisStatus == "unanalyzed"
+
+
+def test_cors_origins_are_configurable_from_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.main import get_cors_origins
+
+    monkeypatch.delenv("CORS_ALLOW_ORIGINS", raising=False)
+    assert get_cors_origins() == ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+    monkeypatch.setenv(
+        "CORS_ALLOW_ORIGINS", " https://wintop.example.com/ ,https://x.vercel.app,"
+    )
+    assert get_cors_origins() == ["https://wintop.example.com", "https://x.vercel.app"]

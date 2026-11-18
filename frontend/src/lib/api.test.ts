@@ -55,3 +55,31 @@ describe("getOrCreateVoterToken", () => {
     expect(getOrCreateVoterToken()).toBe("ephemeral-voter");
   });
 });
+
+describe("apiBaseUrl", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("falls back to the local API when the variable is unset", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", undefined as unknown as string);
+    vi.resetModules();
+    const { apiBaseUrl } = await import("./api");
+    expect(apiBaseUrl).toBe("http://localhost:8000");
+  });
+
+  it("uses the page origin when the variable is empty (same-origin deployment)", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+    vi.resetModules();
+    const { apiBaseUrl } = await import("./api");
+    expect(apiBaseUrl).toBe(window.location.origin);
+  });
+
+  it("uses an explicit URL when one is given", async () => {
+    vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "https://api.example.com");
+    vi.resetModules();
+    const { apiBaseUrl } = await import("./api");
+    expect(apiBaseUrl).toBe("https://api.example.com");
+  });
+});

@@ -16,3 +16,13 @@ mysql_data/
 backend/build/
 
 /phase1-source-research.md
+
+# Deployment: real secrets and the private runbook (placeholders live in deploy/env.example)
+deploy/.env
+deploy/*.private.md
+docs/DEPLOY_PRIVATE.md
+backups/
+*.pem
+*.tfstate
+*.tfstate.*
+.terraform/

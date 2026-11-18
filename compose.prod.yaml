@@ -1,0 +1,72 @@
+# Production stack for a single EC2 instance: Caddy (HTTPS) -> Next.js + FastAPI -> MySQL.
+# Usage:  docker compose -f compose.prod.yaml --env-file deploy/.env up -d --build
+# Variables are documented in deploy/env.example.
+services:
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+
+  web:
+    build:
+      context: frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ""
+    restart: unless-stopped
+    mem_limit: 400m
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    mem_limit: 400m
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-mysql+pymysql://wintop:${MYSQL_PASSWORD}@mysql:3306/wintop}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    mem_limit: 512m
+    # Tuned for a small instance: ~170 MiB resident instead of ~440 MiB with defaults.
+    command:
+      - --innodb-buffer-pool-size=96M
+      - --max-connections=30
+      - --performance-schema=OFF
+      - --skip-log-bin
+    environment:
+      MYSQL_DATABASE: wintop
+      MYSQL_USER: wintop
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  mysql_data:
+  caddy_data:
+  caddy_config:

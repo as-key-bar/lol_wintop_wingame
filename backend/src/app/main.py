@@ -3,7 +3,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -26,10 +26,18 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_CORS_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
+
+
+def get_cors_origins() -> list[str]:
+    raw = os.getenv("CORS_ALLOW_ORIGINS", DEFAULT_CORS_ORIGINS)
+    return [origin.strip().rstrip("/") for origin in raw.split(",") if origin.strip()]
+
+
 app = FastAPI(title="wintop-wingame API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=get_cors_origins(),
     allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type", "Authorization"],
 )
@@ -127,14 +135,12 @@ def get_champions(
     response_model=MatchupResponse,
 )
 def get_matchup(
-    request: Request,
     playerChampionId: str,
     opponentChampionId: str,
     includeCandidates: bool = Query(default=False),
     voterToken: str | None = Query(default=None, max_length=128),
 ) -> MatchupResponse:
-    client_host = request.client.host if request.client else None
-    voter_hash = compute_voter_hash(voterToken, client_host)
+    voter_hash = compute_voter_hash(voterToken)
     try:
         items = get_matchup_videos(
             playerChampionId,
@@ -172,13 +178,11 @@ def get_matchup(
     response_model=MatchupVideo,
 )
 def post_matchup_upvote(
-    request: Request,
     playerChampionId: str,
     opponentChampionId: str,
     body: UpvoteRequest,
 ) -> MatchupVideo:
-    client_host = request.client.host if request.client else None
-    voter_hash = compute_voter_hash(body.voterToken, client_host)
+    voter_hash = compute_voter_hash(body.voterToken)
     try:
         return toggle_matchup_video_upvote(
             player_champion_id=playerChampionId,
