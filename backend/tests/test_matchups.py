@@ -670,7 +670,10 @@ def test_extract_description_with_embedded_semicolons_and_compact_format() -> No
     assert parsed.timestamps[1].isKillEvent is True
 
 
-def test_game_assets_and_manual_metadata_persistence() -> None:
+def test_game_assets_and_manual_metadata_persistence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
     assets_response = get("/api/v1/game-assets")
     assert assets_response.status_code == 200
     assets_data = assets_response.json()
@@ -718,6 +721,7 @@ def test_game_assets_and_manual_metadata_persistence() -> None:
     put_response = put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         {"video": video_payload, "metadata": metadata_payload},
+        headers={"Authorization": "Bearer correct-token"},
     )
     assert put_response.status_code == 200
     assert put_response.json()["analysisStatus"] == "manual_verified"
@@ -759,3 +763,161 @@ def test_sorcery_keystones_match_current_catalog_and_legacy_alias() -> None:
     assert surge.runes is not None and legacy.runes is not None
     assert surge.runes.primarySelections[0] == 8230
     assert legacy.runes.primarySelections[0] == 8230
+
+
+VIDEO_PAYLOAD = {
+    "id": "yt-aatrox-vs-darius-guard1",
+    "playerChampionId": "Aatrox",
+    "opponentChampionId": "Darius",
+    "title": "Aatrox Top vs Darius - KR Challenger Patch 26.22",
+    "videoUrl": "https://www.youtube.com/watch?v=guard1",
+    "channelName": "Challenger Replays",
+    "channelUrl": "https://www.youtube.com/@ChallengerReplays",
+    "publishedAt": None,
+    "gamePatch": "26.22",
+    "verifiedAt": "2026-11-11T11:40:00+09:00",
+    "verificationStatus": "verified",
+    "embedStatus": "unknown",
+    "sourceUrl": "https://www.youtube.com/results?search_query=Aatrox+Top+vs+Darius",
+    "origin": "youtube_search",
+}
+METADATA_PAYLOAD = {
+    "analysisStatus": "manual_verified",
+    "runes": None,
+    "summonerSpells": ["SummonerFlash", "SummonerTeleport"],
+    "startingItems": ["1054"],
+    "timestamps": [],
+}
+
+
+def test_put_metadata_is_disabled_without_server_admin_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+
+    response = put(
+        "/api/v1/matchups/Aatrox/Darius/metadata",
+        {"video": VIDEO_PAYLOAD, "metadata": METADATA_PAYLOAD},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"]["code"] == "admin_disabled"
+    assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
+
+
+def test_put_metadata_rejects_missing_or_wrong_admin_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    body = {"video": VIDEO_PAYLOAD, "metadata": METADATA_PAYLOAD}
+
+    missing = put("/api/v1/matchups/Aatrox/Darius/metadata", body)
+    wrong = put(
+        "/api/v1/matchups/Aatrox/Darius/metadata",
+        body,
+        headers={"Authorization": "Bearer wrong-token"},
+    )
+
+    assert missing.status_code == 401
+    assert wrong.status_code == 401
+    assert wrong.json()["detail"]["code"] == "invalid_admin_token"
+    assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
+
+
+def test_put_metadata_accepts_valid_admin_token(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+
+    response = put(
+        "/api/v1/matchups/Aatrox/Darius/metadata",
+        {"video": VIDEO_PAYLOAD, "metadata": METADATA_PAYLOAD},
+        headers={"Authorization": "Bearer correct-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["analysisStatus"] == "manual_verified"
+
+
+def test_starting_items_come_only_from_explicit_starter_items_line() -> None:
+    end_of_game_build = video_analysis.parse_youtube_description_metadata(
+        "Spells: Teleport Flash\n"
+        "Build: Hextech Rocketbelt, Zhonya's Hourglass, Doran's Ring, Riftmaker\n"
+    )
+    explicit = video_analysis.parse_youtube_description_metadata(
+        "Spells: Teleport Flash\n"
+        "Starter Items: Doran's Ring, Health Potion\n"
+        "Build: Hextech Rocketbelt\n"
+    )
+
+    assert end_of_game_build.startingItems == []
+    assert explicit.startingItems == ["1056", "2003"]
+
+
+def _count_fetches(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    calls: list[str] = []
+
+    def fake_fetch(video_url: str) -> video_analysis.VideoMetadataAnalysis:
+        calls.append(video_url)
+        return video_analysis.VideoMetadataAnalysis(
+            analysisStatus="auto_parsed", summonerSpells=["SummonerFlash"]
+        )
+
+    monkeypatch.setattr(matchups, "fetch_and_analyze_youtube_video", fake_fetch)
+    return calls
+
+
+def test_analyze_skips_youtube_when_metadata_already_saved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = _count_fetches(monkeypatch)
+    video = {**VIDEO_PAYLOAD, "id": "yt-aatrox-vs-darius-cache1"}
+    post_url = "/api/v1/matchups/Aatrox/Darius/upvote"
+    assert (
+        post(post_url, {"video": video, "voterToken": "voter-cache-12345"}).status_code
+        == 200
+    )
+    assert len(calls) == 1
+
+    cached = post("/api/v1/matchups/Aatrox/Darius/analyze", {"video": video})
+    refreshed = post(
+        "/api/v1/matchups/Aatrox/Darius/analyze", {"video": video, "refresh": True}
+    )
+
+    assert cached.status_code == 200
+    assert cached.json()["analysisStatus"] == "auto_parsed"
+    assert len(calls) == 2
+    assert refreshed.status_code == 200
+
+
+def test_analyze_never_overwrites_manually_verified_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    calls = _count_fetches(monkeypatch)
+    video = {**VIDEO_PAYLOAD, "id": "yt-aatrox-vs-darius-manual1"}
+    put(
+        "/api/v1/matchups/Aatrox/Darius/metadata",
+        {"video": video, "metadata": METADATA_PAYLOAD},
+        headers={"Authorization": "Bearer correct-token"},
+    )
+
+    response = post(
+        "/api/v1/matchups/Aatrox/Darius/analyze", {"video": video, "refresh": True}
+    )
+
+    assert calls == []
+    assert response.json()["analysisStatus"] == "manual_verified"
+    assert response.json()["startingItems"] == ["1054"]
+
+
+def test_stat_shard_rows_match_current_game_layout() -> None:
+    # Verified against CommunityDragon perkstyles.json (Offense / Flex / Defense) on 2026-11-17.
+    rows = video_analysis.load_game_assets()["statShardRows"]
+
+    assert [[shard["id"] for shard in row] for row in rows] == [
+        [5008, 5005, 5007],
+        [5008, 5010, 5001],
+        [5011, 5013, 5001],
+    ]
+

@@ -15,7 +15,7 @@
 |---|---|---|
 | 2A-1 | Data Dragon からルーン、シャード、スペル、スタートアイテムのカタログを生成（`scripts/update_game_assets_catalog.py` → `game_assets.json`） | 完了 |
 | 2A-2 | 概要欄の解析処理（`backend/src/app/video_analysis.py`）。全記載型と省略型の両方に対応 | 完了 |
-| 2A-3 | `matchup_video_metadata` テーブル、UV 時の自動取得、`POST /analyze`、`PUT /metadata` | 完了（`PUT` に認証がない。HANDOFF 5 章の 3） |
+| 2A-3 | `matchup_video_metadata` テーブル、UV 時の自動取得、`POST /analyze`、`PUT /metadata` | 完了（`PUT` は `ADMIN_TOKEN` で保護。`analyze` は保存済みなら再取得しない） |
 | 2A-4 | ルーン9枠の表示、スペルとアイテムの表示、タイムスタンプでの再生位置ジャンプ、手動編集画面（`VideoMetadataPanel.tsx`） | 完了 |
 | 2B-1 | 動画序盤の画面（HUD）からスタートアイテムを画像認識する試作 | 未着手（映像の取得方法と規約の確認が先） |
 | 2B-2 | 判定結果を `starting_items_json` に自動保存し、画面に反映 | 未着手 |
@@ -26,4 +26,5 @@
 - 映像の取得方法：仕様書では、動画のダウンロード、ミラー、再配布を禁止している。フレームの取得方法は、実装を始める前に規約の面から確認すること。
 - HUD の位置：チャンネルごとにオーバーレイの位置や解像度が異なる。まずは Challenger Replays のレイアウトを基準に、切り出す座標を決める。
 - 判定方法：Data Dragon のアイテムアイコン（ドラン系、カル、ダークシール、ポーションなど、`game_assets.json` の `starterItems`）とのテンプレートマッチングから試す。
+- 現状：スタートアイテムは、概要欄の `Starter Items:` 行と手動登録のみ（`Build:` 行からの推定は廃止）。画像認識の結果が入るまで、多くの動画で「未確認」と表示される。
 - 推定値の扱い：画像認識の結果は信頼度とあわせて保存し、確定情報と区別して画面に表示する（仕様書 4.4）。

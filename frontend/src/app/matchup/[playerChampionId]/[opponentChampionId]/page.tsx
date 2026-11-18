@@ -174,7 +174,7 @@ function MatchupContent() {
       ? getYouTubeEmbedUrl(activeVideo.videoUrl, playbackStartSeconds)
       : null;
 
-  async function handleAnalyzeVideo(video: MatchupVideo) {
+  async function handleAnalyzeVideo(video: MatchupVideo, refresh: boolean) {
     if (!playerChampionId || !opponentChampionId || analyzingVideoId) {
       return;
     }
@@ -190,7 +190,7 @@ function MatchupContent() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ video }),
+        body: JSON.stringify({ video, refresh }),
       });
       if (!response.ok) {
         throw new Error("動画概要欄からの情報取得に失敗しました。");
@@ -215,12 +215,12 @@ function MatchupContent() {
   async function handleSaveManualMetadata(
     video: MatchupVideo,
     metadata: VideoMetadataAnalysis,
+    adminToken: string,
   ) {
     if (!playerChampionId || !opponentChampionId || savingMetadata) {
       return;
     }
     setSavingMetadata(true);
-    setError("");
     try {
       const saveUrl = new URL(
         `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/metadata`,
@@ -230,9 +230,18 @@ function MatchupContent() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
         },
         body: JSON.stringify({ video, metadata }),
       });
+      if (response.status === 401) {
+        throw new Error("管理者トークンが正しくありません。");
+      }
+      if (response.status === 403) {
+        throw new Error(
+          "サーバーで管理者機能が無効です（ADMIN_TOKEN が未設定です）。",
+        );
+      }
       if (!response.ok) {
         throw new Error("ビルド情報の保存に失敗しました。");
       }
@@ -243,12 +252,6 @@ function MatchupContent() {
             ? { ...item, origin: "saved", metadata: savedMetadata }
             : item,
         ),
-      );
-    } catch (requestError) {
-      setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "ビルド情報の保存に失敗しました。",
       );
     } finally {
       setSavingMetadata(false);
@@ -590,9 +593,11 @@ function MatchupContent() {
                 gameAssets={gameAssets}
                 analyzing={analyzingVideoId === activeVideo.id}
                 savingManual={savingMetadata}
-                onAnalyzeDescription={() => handleAnalyzeVideo(activeVideo)}
-                onSaveManualMetadata={(updated) =>
-                  handleSaveManualMetadata(activeVideo, updated)
+                onAnalyzeDescription={(refresh) =>
+                  handleAnalyzeVideo(activeVideo, refresh)
+                }
+                onSaveManualMetadata={(updated, adminToken) =>
+                  handleSaveManualMetadata(activeVideo, updated, adminToken)
                 }
                 onJumpToTimestamp={(seconds) => {
                   setPlaybackStartSeconds(seconds);

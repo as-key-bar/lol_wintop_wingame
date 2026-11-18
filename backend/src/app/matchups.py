@@ -552,6 +552,7 @@ def analyze_matchup_video_metadata(
     player_champion_id: str,
     opponent_champion_id: str,
     video: MatchupVideo,
+    refresh: bool = False,
 ) -> VideoMetadataAnalysis:
     valid_champion_ids = get_champion_ids()
     if (
@@ -562,36 +563,35 @@ def analyze_matchup_video_metadata(
             f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
         )
 
-    analyzed = fetch_and_analyze_youtube_video(video.videoUrl)
     seed_videos = load_matchups()
     try:
         engine = get_engine()
         ensure_database_seeded(engine, seed_videos)
         with Session(engine) as session:
             record = session.get(MatchupVideoRecord, video.id)
+            existing_model: VideoMetadataAnalysis | None = None
             if record is not None:
-                existing_meta = session.get(MatchupVideoMetadataRecord, record.id)
-                if existing_meta is not None:
-                    existing_model = _metadata_record_to_model(existing_meta)
-                    if existing_model:
-                        if existing_model.startingItems and not analyzed.startingItems:
-                            analyzed.startingItems = existing_model.startingItems
-                        if existing_model.runes and not analyzed.runes:
-                            analyzed.runes = existing_model.runes
-                        if (
-                            existing_model.summonerSpells
-                            and not analyzed.summonerSpells
-                        ):
-                            analyzed.summonerSpells = existing_model.summonerSpells
+                existing_model = _metadata_record_to_model(
+                    session.get(MatchupVideoMetadataRecord, record.id)
+                )
+
+            if existing_model is not None and existing_model.analysisStatus != "unanalyzed":
+                # Manually verified data is never overwritten by automatic parsing.
+                if existing_model.analysisStatus == "manual_verified" or not refresh:
+                    return existing_model
+
+            analyzed = fetch_and_analyze_youtube_video(video.videoUrl)
+            if record is not None and analyzed.analysisStatus != "unanalyzed":
                 _upsert_metadata_record(session, record.id, analyzed)
                 session.commit()
+            return analyzed
     except SQLAlchemyError:
         logger.debug(
             "Database unavailable while caching analyzed video metadata",
             exc_info=True,
         )
 
-    return analyzed
+    return fetch_and_analyze_youtube_video(video.videoUrl)
 
 
 def save_manual_video_metadata(

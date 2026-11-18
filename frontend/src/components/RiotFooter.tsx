@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "@/app/page.module.css";
 
 export function RiotFooter() {
@@ -12,6 +13,8 @@ export function RiotFooter() {
         >
           Riot Games Data Dragon
         </a>
+        {" ・ "}
+        <Link href="/credit">クレジット</Link>
       </p>
       <p className={styles.legal}>
         wintop-wingame is not endorsed by Riot Games and does not reflect the

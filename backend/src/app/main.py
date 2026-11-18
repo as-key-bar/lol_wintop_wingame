@@ -1,7 +1,9 @@
+import hmac
 import logging
+import os
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import text
@@ -29,8 +31,32 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_methods=["GET", "POST", "PUT"],
-    allow_headers=["*"],
+    allow_headers=["Content-Type", "Authorization"],
 )
+
+
+def require_admin_token(authorization: str | None = Header(default=None)) -> None:
+    expected = os.getenv("ADMIN_TOKEN", "").strip()
+    if not expected:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "admin_disabled",
+                "message": "管理者機能は無効です。サーバーに ADMIN_TOKEN が設定されていません。",
+            },
+        )
+    scheme, _, supplied = (authorization or "").partition(" ")
+    if scheme.lower() != "bearer" or not hmac.compare_digest(
+        supplied.strip().encode("utf-8"), expected.encode("utf-8")
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "code": "invalid_admin_token",
+                "message": "管理者トークンが正しくありません。",
+            },
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 class ChampionListResponse(BaseModel):
@@ -51,6 +77,7 @@ class UpvoteRequest(BaseModel):
 
 class AnalyzeMetadataRequest(BaseModel):
     video: MatchupVideo
+    refresh: bool = False
 
 
 class SaveMetadataRequest(BaseModel):
@@ -215,6 +242,7 @@ def post_analyze_matchup_video(
             player_champion_id=playerChampionId,
             opponent_champion_id=opponentChampionId,
             video=body.video,
+            refresh=body.refresh,
         )
     except UnknownChampionError as error:
         raise HTTPException(
@@ -229,6 +257,7 @@ def post_analyze_matchup_video(
 @app.put(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/metadata",
     response_model=VideoMetadataAnalysis,
+    dependencies=[Depends(require_admin_token)],
 )
 def put_matchup_video_metadata(
     playerChampionId: str,

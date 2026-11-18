@@ -1,0 +1,186 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { GameAssetsCatalog, VideoMetadataAnalysis } from "@/lib/api";
+import { VideoMetadataPanel } from "./VideoMetadataPanel";
+
+const assets: GameAssetsCatalog = {
+  dataDragonVersion: "16.22.1",
+  sourceUrl: "https://example.com",
+  runeStyles: [
+    {
+      id: 8000,
+      key: "Precision",
+      nameJa: "栄華",
+      nameEn: "Precision",
+      iconUrl: "https://example.com/precision.png",
+      slots: [],
+    },
+    {
+      id: 8200,
+      key: "Sorcery",
+      nameJa: "魔導",
+      nameEn: "Sorcery",
+      iconUrl: "https://example.com/sorcery.png",
+      slots: [],
+    },
+  ],
+  statShardRows: [],
+  summonerSpells: [
+    {
+      id: "SummonerFlash",
+      key: "4",
+      nameJa: "フラッシュ",
+      nameEn: "Flash",
+      iconUrl: "https://example.com/flash.png",
+    },
+  ],
+  starterItems: [
+    {
+      id: "1054",
+      nameJa: "ドランシールド",
+      nameEn: "Doran's Shield",
+      gold: 450,
+      iconUrl: "https://example.com/doran.png",
+    },
+  ],
+};
+
+function metadata(
+  overrides: Partial<VideoMetadataAnalysis> = {},
+): VideoMetadataAnalysis {
+  return {
+    analysisStatus: "auto_parsed",
+    runes: null,
+    summonerSpells: ["SummonerFlash"],
+    startingItems: [],
+    timestamps: [],
+    ...overrides,
+  };
+}
+
+function renderPanel(
+  props: Partial<React.ComponentProps<typeof VideoMetadataPanel>> = {},
+) {
+  const onAnalyzeDescription = vi.fn();
+  const onSaveManualMetadata = vi.fn().mockResolvedValue(undefined);
+  render(
+    <VideoMetadataPanel
+      metadata={metadata()}
+      gameAssets={assets}
+      analyzing={false}
+      savingManual={false}
+      onAnalyzeDescription={onAnalyzeDescription}
+      onSaveManualMetadata={onSaveManualMetadata}
+      onJumpToTimestamp={vi.fn()}
+      {...props}
+    />,
+  );
+  return { onAnalyzeDescription, onSaveManualMetadata };
+}
+
+afterEach(() => {
+  window.sessionStorage.clear();
+});
+
+describe("VideoMetadataPanel analyze button", () => {
+  it("offers the first extraction when nothing is analyzed", async () => {
+    const { onAnalyzeDescription } = renderPanel({
+      metadata: metadata({ analysisStatus: "unanalyzed", summonerSpells: [] }),
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "概要欄から自動取得" }),
+    );
+
+    expect(onAnalyzeDescription).toHaveBeenCalledWith(false);
+  });
+
+  it("asks for a refresh when auto-parsed data already exists", async () => {
+    const { onAnalyzeDescription } = renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "概要欄から再取得" }),
+    );
+
+    expect(onAnalyzeDescription).toHaveBeenCalledWith(true);
+  });
+
+  it("is disabled for manually verified data", () => {
+    renderPanel({ metadata: metadata({ analysisStatus: "manual_verified" }) });
+
+    expect(
+      screen.getByRole("button", { name: "概要欄から再取得" }),
+    ).toBeDisabled();
+  });
+});
+
+describe("VideoMetadataPanel starter items", () => {
+  it("shows an unconfirmed note when no starter item is known", () => {
+    renderPanel();
+
+    expect(screen.getByText(/未確認（概要欄に記載がなく/)).toBeInTheDocument();
+  });
+
+  it("labels the source of a listed starter item", () => {
+    renderPanel({ metadata: metadata({ startingItems: ["1054"] }) });
+
+    expect(screen.getByText("スタートアイテム（概要欄の記載）")).toBeInTheDocument();
+    expect(screen.getByText("ドランシールド")).toBeInTheDocument();
+  });
+});
+
+describe("VideoMetadataPanel manual save", () => {
+  async function openEditor() {
+    await userEvent.click(screen.getByRole("button", { name: "ビルドを手動編集" }));
+  }
+
+  it("requires an admin token before saving", async () => {
+    const { onSaveManualMetadata } = renderPanel();
+    await openEditor();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "このビルド情報をDBに保存" }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "管理者トークンを入力してください。",
+    );
+    expect(onSaveManualMetadata).not.toHaveBeenCalled();
+  });
+
+  it("sends the entered token and remembers it for the session", async () => {
+    const { onSaveManualMetadata } = renderPanel();
+    await openEditor();
+
+    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
+    await userEvent.click(
+      screen.getByRole("button", { name: "このビルド情報をDBに保存" }),
+    );
+
+    await waitFor(() => expect(onSaveManualMetadata).toHaveBeenCalledTimes(1));
+    const [saved, token] = onSaveManualMetadata.mock.calls[0];
+    expect(token).toBe("secret");
+    expect(saved.analysisStatus).toBe("manual_verified");
+    expect(window.sessionStorage.getItem("wintop_admin_token")).toBe("secret");
+  });
+
+  it("shows the server error and keeps the editor open when saving fails", async () => {
+    const { onSaveManualMetadata } = renderPanel();
+    onSaveManualMetadata.mockRejectedValueOnce(
+      new Error("管理者トークンが正しくありません。"),
+    );
+    await openEditor();
+
+    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "wrong");
+    await userEvent.click(
+      screen.getByRole("button", { name: "このビルド情報をDBに保存" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "管理者トークンが正しくありません。",
+    );
+    expect(window.sessionStorage.getItem("wintop_admin_token")).toBeNull();
+    expect(screen.getByPlaceholderText("ADMIN_TOKEN")).toBeInTheDocument();
+  });
+});

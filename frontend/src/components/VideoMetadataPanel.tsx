@@ -14,10 +14,31 @@ type VideoMetadataPanelProps = {
   gameAssets: GameAssetsCatalog | null;
   analyzing: boolean;
   savingManual: boolean;
-  onAnalyzeDescription: () => void;
-  onSaveManualMetadata: (updated: VideoMetadataAnalysis) => Promise<void>;
+  onAnalyzeDescription: (refresh: boolean) => void;
+  onSaveManualMetadata: (
+    updated: VideoMetadataAnalysis,
+    adminToken: string,
+  ) => Promise<void>;
   onJumpToTimestamp: (seconds: number) => void;
 };
+
+const ADMIN_TOKEN_STORAGE_KEY = "wintop_admin_token";
+
+function readStoredAdminToken(): string {
+  try {
+    return window.sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function storeAdminToken(token: string) {
+  try {
+    window.sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+  } catch {
+    // sessionStorage may be unavailable; the token is simply not remembered.
+  }
+}
 
 export function VideoMetadataPanel({
   metadata,
@@ -42,8 +63,11 @@ export function VideoMetadataPanel({
   const [draftShards, setDraftShards] = useState<number[]>([]);
   const [draftSpells, setDraftSpells] = useState<string[]>([]);
   const [draftItems, setDraftItems] = useState<string[]>([]);
+  const [adminToken, setAdminToken] = useState(readStoredAdminToken);
+  const [saveError, setSaveError] = useState("");
 
   function openEditor() {
+    setSaveError("");
     if (!gameAssets) {
       return;
     }
@@ -140,14 +164,32 @@ export function VideoMetadataPanel({
         }
       : null;
 
-    await onSaveManualMetadata({
-      analysisStatus: "manual_verified",
-      runes: runesPayload,
-      summonerSpells: draftSpells,
-      startingItems: draftItems,
-      timestamps: metadata?.timestamps ?? [],
-    });
-    setEditing(false);
+    const token = adminToken.trim();
+    if (!token) {
+      setSaveError("管理者トークンを入力してください。");
+      return;
+    }
+    setSaveError("");
+    try {
+      await onSaveManualMetadata(
+        {
+          analysisStatus: "manual_verified",
+          runes: runesPayload,
+          summonerSpells: draftSpells,
+          startingItems: draftItems,
+          timestamps: metadata?.timestamps ?? [],
+        },
+        token,
+      );
+      storeAdminToken(token);
+      setEditing(false);
+    } catch (saveFailure) {
+      setSaveError(
+        saveFailure instanceof Error
+          ? saveFailure.message
+          : "ビルド情報の保存に失敗しました。",
+      );
+    }
   }
 
   if (!gameAssets) {
@@ -178,6 +220,10 @@ export function VideoMetadataPanel({
     ? allTimestamps.filter((ts) => ts.isKillEvent)
     : allTimestamps;
 
+  const analysisStatus = metadata?.analysisStatus ?? "unanalyzed";
+  const analyzeLabel =
+    analysisStatus === "unanalyzed" ? "概要欄から自動取得" : "概要欄から再取得";
+
   const statusLabel =
     metadata?.analysisStatus === "manual_verified"
       ? "手動確認済"
@@ -207,10 +253,15 @@ export function VideoMetadataPanel({
           <button
             type="button"
             className={styles.loadCandidatesButton}
-            disabled={analyzing}
-            onClick={onAnalyzeDescription}
+            disabled={analyzing || analysisStatus === "manual_verified"}
+            title={
+              analysisStatus === "manual_verified"
+                ? "手動確認済みのため、自動取得では上書きされません"
+                : undefined
+            }
+            onClick={() => onAnalyzeDescription(analysisStatus === "auto_parsed")}
           >
-            {analyzing ? "概要欄を解析中..." : "概要欄から自動取得"}
+            {analyzing ? "概要欄を解析中..." : analyzeLabel}
           </button>
           <button
             type="button"
@@ -433,6 +484,23 @@ export function VideoMetadataPanel({
             </div>
           </div>
 
+          <div className={styles.editorSection}>
+            <h4>管理者トークン</h4>
+            <input
+              type="password"
+              className={styles.adminTokenInput}
+              value={adminToken}
+              autoComplete="off"
+              placeholder="ADMIN_TOKEN"
+              onChange={(event) => setAdminToken(event.target.value)}
+            />
+            {saveError && (
+              <p className={styles.error} role="alert">
+                {saveError}
+              </p>
+            )}
+          </div>
+
           <div className={styles.editorFooter}>
             <button
               type="button"
@@ -632,7 +700,12 @@ export function VideoMetadataPanel({
 
               <div className={styles.loadoutGroup}>
                 <span className={styles.loadoutLabel}>
-                  スタートアイテム（Phase 2Bで画像認識自動化予定）
+                  スタートアイテム
+                  {analysisStatus === "manual_verified"
+                    ? "（手動確認済）"
+                    : analysisStatus === "auto_parsed"
+                      ? "（概要欄の記載）"
+                      : ""}
                 </span>
                 {starterItems.length > 0 ? (
                   <div className={styles.assetChipList}>
@@ -651,7 +724,7 @@ export function VideoMetadataPanel({
                   </div>
                 ) : (
                   <span className={styles.emptyInlineNote}>
-                    未設定（「ビルドを手動編集」から登録可）
+                    未確認（概要欄に記載がなく、手動登録もされていません）
                   </span>
                 )}
               </div>

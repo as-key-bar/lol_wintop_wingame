@@ -170,22 +170,18 @@ def _parse_spells_from_description(
 def _parse_starter_items_from_description(
     description: str, starter_item_by_name: dict[str, str]
 ) -> list[str]:
+    # Only an explicit "Starter Items:" line counts. The end-of-game "Build:" line
+    # is not a reliable source for the starting items, so it is never used.
     items: list[str] = []
-    build_match = re.search(
-        r"(?:Starter\s+Items|Build)\s*[:：]\s*([^\n]+)",
-        description,
-        flags=re.IGNORECASE,
+    match = re.search(
+        r"Starter\s+Items\s*[:：]\s*([^\n]+)", description, flags=re.IGNORECASE
     )
-    if not build_match:
+    if not match:
         return items
 
-    for raw_part in build_match.group(1).split(","):
-        part = raw_part.strip()
-        if not part:
-            continue
-        item_id = starter_item_by_name.get(_normalize_lookup_key(part))
-        # Exclude Boots (1001) when scanning end-of-game "Build:" lines unless explicitly Starter Items
-        if item_id and item_id != "1001" and item_id not in items:
+    for raw_part in match.group(1).split(","):
+        item_id = starter_item_by_name.get(_normalize_lookup_key(raw_part.strip()))
+        if item_id and item_id not in items:
             items.append(item_id)
     return items
 
@@ -440,4 +436,3 @@ def fetch_and_analyze_youtube_video(video_url: str) -> VideoMetadataAnalysis:
         return VideoMetadataAnalysis()
 
     return parse_youtube_description_metadata(description)
-
