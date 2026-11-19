@@ -1318,3 +1318,119 @@ button.waveChip {
     flex-wrap: wrap;
   }
 }
+
+/* ウェーブ管理（編集）: 見出し・現在時間ボタン・ヘルプを横一列に並べる */
+.waveStripEditTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.waveStripHeaderButton {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #355b86;
+  background: rgba(88, 166, 255, 0.12);
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.waveStripHeaderButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* はてなアイコン: マウスを乗せる（またはキーボードでフォーカスする）と説明が出る */
+.helpWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.helpIcon {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid #7a8699;
+  background: transparent;
+  color: #aab8c8;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: help;
+}
+
+.helpTooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 10;
+  width: min(420px, 80vw);
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #355b86;
+  background: #101826;
+  color: #c6d1de;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+.helpWrapper:hover .helpTooltip,
+.helpIcon:focus-visible + .helpTooltip,
+.helpWrapper:focus-within .helpTooltip {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* 各ウェーブ: 上に小さく時間、アイコンの左端に赤い×（削除） */
+.waveEditItem {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.waveEditTime {
+  padding-left: 6px;
+  font-size: 0.68rem;
+  line-height: 1;
+  color: #8190a3;
+  font-variant-numeric: tabular-nums;
+}
+
+.waveChip:has(.waveDeleteMark) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 6px;
+}
+
+.waveDeleteMark {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #ff5a5f;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.waveDeleteMark:hover,
+.waveDeleteMark:focus-visible {
+  background: rgba(255, 90, 95, 0.2);
+}

@@ -1,10 +1,15 @@
 import type { WaveNote, WaveState } from "@/lib/api";
 
 // Minion waves reach the lane at a fixed interval; once the first one is known, the time
-// of every later wave follows from it.
+// of every later wave follows from it. This is the time that gets stored.
 export const WAVE_INTERVAL_SECONDS = 30;
+// How far the video is moved after a wave is recorded. It is shorter than the wave interval so
+// the next wave can be watched from a little before it arrives. It only moves the playback
+// position; it is never stored and does not change any wave time.
+export const SKIP_SECONDS = 25;
+// Where the video is parked when the wave editor opens and no first wave time is set yet.
+export const DEFAULT_FIRST_WAVE_SECONDS = 40;
 export const MAX_WAVES = 20;
-export const DEFAULT_WAVE_COUNT = 4;
 
 export const WAVE_STATE_LABEL: Record<WaveState, string> = {
   push: "プッシュ",
@@ -20,6 +25,12 @@ export function waveChipLabel(wave: { waveNumber: number; state: WaveState }): s
 
 export function waveTime(firstWaveSeconds: number, waveNumber: number): number {
   return firstWaveSeconds + (waveNumber - 1) * WAVE_INTERVAL_SECONDS;
+}
+
+// Where to park the video after recording `fromWave`: SKIP_SECONDS ahead of the position the
+// video was at for that wave, which is a little before the next wave arrives.
+export function skipTargetAfter(firstWaveSeconds: number, fromWave: number): number {
+  return waveTime(firstWaveSeconds, fromWave) + SKIP_SECONDS;
 }
 
 export function formatClock(totalSeconds: number): string {

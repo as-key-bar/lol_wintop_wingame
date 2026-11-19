@@ -79,37 +79,151 @@ describe("WaveStrip (edit view)", () => {
     return result;
   }
 
+  const editRegion = () => screen.getByRole("region", { name: "ウェーブ管理（編集）" });
+
   it("swaps the strip for the input controls in place and reports editing", async () => {
     const { onEditingChange } = await openEditor();
 
-    expect(screen.getByRole("region", { name: "ウェーブ管理（編集）" })).toBeInTheDocument();
+    expect(editRegion()).toBeInTheDocument();
     expect(onEditingChange).toHaveBeenLastCalledWith(true);
-    expect(screen.getByLabelText("最初のウェーブの時刻")).toBeInTheDocument();
   });
 
-  it("offers deletion only: there is no way to change a recorded state or add a memo", async () => {
-    await openEditor({ waves: sample, firstWaveSeconds: 85 });
+  it("parks the video at the 40 second default as soon as the editor opens", async () => {
+    const { seekAndPause } = await openEditor();
 
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("メモ")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ウェーブ1を削除" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "ウェーブ3を削除" })).toBeInTheDocument();
+    expect(seekAndPause).toHaveBeenCalledTimes(1);
+    expect(seekAndPause).toHaveBeenCalledWith(40);
   });
 
-  it("needs the first wave time before any wave can be recorded", async () => {
+  it("does not park the video when only viewing", () => {
+    const { seekAndPause } = renderStrip();
+
+    expect(seekAndPause).not.toHaveBeenCalled();
+  });
+
+  it("waits for the player before parking the video", async () => {
+    const seekAndPause = vi.fn();
+    const props = {
+      waves: [] as WaveNote[],
+      firstWaveSeconds: null,
+      onSave: vi.fn().mockResolvedValue(undefined),
+      saving: false,
+      onJumpToTimestamp: vi.fn(),
+      currentTime: () => 92 as number | null,
+      seekAndPause,
+    };
+    const { rerender } = render(<WaveStrip {...props} playerReady={false} />);
+    await userEvent.click(screen.getByRole("button", { name: "編集" }));
+    expect(seekAndPause).not.toHaveBeenCalled();
+
+    rerender(<WaveStrip {...props} playerReady />);
+
+    expect(seekAndPause).toHaveBeenCalledWith(40);
+  });
+
+  it("parks at an already set first wave time instead of the default", async () => {
+    const { seekAndPause } = await openEditor({ waves: sample, firstWaveSeconds: 85 });
+
+    expect(seekAndPause).toHaveBeenCalledWith(85);
+  });
+
+  it("has no typed first-wave field and only the 'set to the current time' button", async () => {
     await openEditor();
 
-    expect(screen.queryByRole("button", { name: /^プッシュ/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("最初のウェーブの時刻")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "設定" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "今の再生位置にする" })).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "ファーストウェーブの時間を現在時間に設定" }),
+    ).toBeInTheDocument();
   });
 
-  it("records a wave with one press, then seeks 30 seconds ahead and pauses", async () => {
+  it("places the current-time button and the help icon right after the title", async () => {
+    await openEditor();
+
+    const header = within(editRegion()).getByRole("heading", { name: "ウェーブ管理（編集）" })
+      .parentElement as HTMLElement;
+    const order = Array.from(header.children).map((child) => child.textContent?.trim());
+    expect(order[0]).toBe("ウェーブ管理（編集）");
+    expect(order[1]).toBe("ファーストウェーブの時間を現在時間に設定");
+    expect(within(header).getByRole("button", { name: "ウェーブ管理の使い方" })).toBeInTheDocument();
+  });
+
+  it("explains how to use it in a help tooltip instead of a paragraph", async () => {
+    await openEditor();
+
+    const help = screen.getByRole("tooltip");
+    expect(help).toHaveTextContent("概要欄から取得できないため");
+    expect(help).toHaveTextContent("25秒先へ送って一時停止");
+    expect(help).toHaveTextContent("赤い×で削除");
+    expect(screen.getByRole("button", { name: "ウェーブ管理の使い方" })).toHaveAttribute(
+      "aria-describedby",
+      help.id,
+    );
+  });
+
+  it("sets the first wave to the current playback time, re-times the waves and seeks there", async () => {
+    const { seekAndPause, onSave } = await openEditor({
+      waves: sample.slice(0, 2),
+      firstWaveSeconds: 85,
+      currentTime: () => 92,
+    });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "ファーストウェーブの時間を現在時間に設定" }),
+    );
+    expect(seekAndPause).toHaveBeenLastCalledWith(92);
+    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
+    await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const [waves, first] = onSave.mock.calls[0];
+    expect(first).toBe(92);
+    expect(waves.map((wave: WaveNote) => wave.timeSeconds)).toEqual([92, 122]);
+  });
+
+  it("disables the current-time button while the player is not ready", async () => {
+    await openEditor({ playerReady: false });
+
+    expect(
+      screen.getByRole("button", { name: "ファーストウェーブの時間を現在時間に設定" }),
+    ).toBeDisabled();
+  });
+
+  it("records from the 40 second default without any setup and stores the 30 second spacing", async () => {
+    const { onSave } = await openEditor();
+
+    await userEvent.keyboard("1");
+    await userEvent.keyboard("2");
+    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
+    await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    const [waves, first] = onSave.mock.calls[0];
+    expect(first).toBe(40);
+    expect(waves.map((w: WaveNote) => [w.waveNumber, w.timeSeconds, w.state])).toEqual([
+      [1, 40, "push"],
+      [2, 70, "pull"],
+    ]);
+  });
+
+  it("moves the video only 25 seconds after recording, from that wave's time", async () => {
     const { seekAndPause } = await openEditor({ firstWaveSeconds: 85 });
+    seekAndPause.mockClear();
+
+    await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
+    expect(seekAndPause).toHaveBeenLastCalledWith(110);
+
+    await userEvent.click(screen.getByRole("button", { name: /^プル/ }));
+    expect(seekAndPause).toHaveBeenLastCalledWith(140);
+  });
+
+  it("shows the next wave at its 30 second based time even though the video moves 25 seconds", async () => {
+    await openEditor({ firstWaveSeconds: 85 });
 
     await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
 
-    expect(seekAndPause).toHaveBeenLastCalledWith(115);
     expect(screen.getByText(/ウェーブ 2（1:55）/)).toBeInTheDocument();
-    expect(screen.getByText("1：プッシュ")).toBeInTheDocument();
   });
 
   it("records several waves with the keyboard shortcuts", async () => {
@@ -119,43 +233,51 @@ describe("WaveStrip (edit view)", () => {
     await userEvent.keyboard("2");
     await userEvent.keyboard("4");
 
-    const list = screen.getAllByRole("listitem").map((item) => item.textContent);
-    expect(list.map((text) => text?.replace("削除", ""))).toEqual([
-      "1：プッシュ",
-      "2：プル",
-      "3：不明",
-    ]);
+    const labels = within(editRegion())
+      .getAllByRole("listitem")
+      .map((item) => item.textContent?.replace("×", "").replace(/^\d+:\d{2}/, ""));
+    expect(labels).toEqual(["1：プッシュ", "2：プル", "3：不明"]);
   });
 
   it("ignores shortcut keys typed into a text field", async () => {
     await openEditor({ firstWaveSeconds: 85 });
 
-    await userEvent.type(screen.getByLabelText("最初のウェーブの時刻"), "1");
+    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "1");
 
-    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    expect(within(editRegion()).queryAllByRole("listitem")).toHaveLength(0);
   });
 
-  it("re-times every wave when the first wave time changes", async () => {
-    const { onSave } = await openEditor({ waves: sample.slice(0, 2), firstWaveSeconds: 85 });
+  it("shows each wave's time in small text above its icon, in the edit view only", async () => {
+    renderStrip({ waves: sample, firstWaveSeconds: 85 });
+    const strip = screen.getByRole("region", { name: "ウェーブ管理" });
+    expect(within(strip).queryByText("1:25")).not.toBeInTheDocument();
 
-    const input = screen.getByLabelText("最初のウェーブの時刻");
-    await userEvent.clear(input);
-    await userEvent.type(input, "1:30");
-    await userEvent.click(screen.getByRole("button", { name: "設定" }));
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
-    await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
+    await userEvent.click(screen.getByRole("button", { name: "編集" }));
 
-    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    const [waves, first] = onSave.mock.calls[0];
-    expect(first).toBe(90);
-    expect(waves.map((wave: WaveNote) => wave.timeSeconds)).toEqual([90, 120]);
+    const items = within(editRegion()).getAllByRole("listitem");
+    expect(items.map((item) => item.firstElementChild?.textContent)).toEqual(["1:25", "1:55", "2:25"]);
+  });
+
+  it("deletes a wave with the red × at the left end of its icon, and has no 削除 buttons", async () => {
+    await openEditor({ waves: sample, firstWaveSeconds: 85 });
+
+    expect(screen.queryByRole("button", { name: "削除" })).not.toBeInTheDocument();
+    const item = within(editRegion()).getAllByRole("listitem")[2];
+    const mark = within(item).getByRole("button", { name: "ウェーブ3を削除" });
+    expect(mark).toHaveTextContent("×");
+    const chip = mark.parentElement as HTMLElement;
+    expect(chip.firstElementChild).toBe(mark);
+
+    await userEvent.click(mark);
+
+    expect(within(editRegion()).getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByText(/ウェーブ 3（2:25）/)).toBeInTheDocument();
   });
 
   it("corrects a wave by deleting it and recording the same number again", async () => {
     const { onSave } = await openEditor({ waves: sample, firstWaveSeconds: 85 });
 
     await userEvent.click(screen.getByRole("button", { name: "ウェーブ3を削除" }));
-    expect(screen.getByText(/ウェーブ 3（2:25）/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
     await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
     await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
@@ -167,6 +289,13 @@ describe("WaveStrip (edit view)", () => {
       [2, "push"],
       [3, "push"],
     ]);
+  });
+
+  it("offers deletion only: no state selector and no memo", async () => {
+    await openEditor({ waves: sample, firstWaveSeconds: 85 });
+
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("メモ")).not.toBeInTheDocument();
   });
 
   it("requires the admin token and shows the server's error without closing", async () => {
@@ -181,7 +310,7 @@ describe("WaveStrip (edit view)", () => {
     await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("管理者トークンが正しくありません。");
-    expect(screen.getByRole("region", { name: "ウェーブ管理（編集）" })).toBeInTheDocument();
+    expect(editRegion()).toBeInTheDocument();
     expect(window.sessionStorage.getItem("wintop_admin_token")).toBeNull();
   });
 
@@ -205,12 +334,5 @@ describe("WaveStrip (edit view)", () => {
     await userEvent.click(screen.getByRole("button", { name: "閉じる" }));
 
     expect(screen.getByRole("button", { name: "1：プッシュ" })).toBeInTheDocument();
-  });
-
-  it("disables 'use the current position' while the player is not ready", async () => {
-    await openEditor({ playerReady: false });
-
-    expect(screen.getByRole("button", { name: "今の再生位置にする" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "設定" })).toBeEnabled();
   });
 });

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { WaveNote } from "./api";
 import {
+  DEFAULT_FIRST_WAVE_SECONDS,
+  SKIP_SECONDS,
+  WAVE_INTERVAL_SECONDS,
+  skipTargetAfter,
   waveChipLabel,
   formatClock,
   nextWaveNumber,
@@ -84,5 +88,22 @@ describe("waveChipLabel", () => {
     expect(waveChipLabel({ waveNumber: 1, state: "push" })).toBe("1：プッシュ");
     expect(waveChipLabel({ waveNumber: 3, state: "pull" })).toBe("3：プル");
     expect(waveChipLabel({ waveNumber: 4, state: "unknown" })).toBe("4：不明");
+  });
+});
+
+describe("skip distance versus stored wave spacing", () => {
+  it("stores waves 30 seconds apart but moves the video only 25 seconds", () => {
+    expect(WAVE_INTERVAL_SECONDS).toBe(30);
+    expect(SKIP_SECONDS).toBe(25);
+    expect(waveTime(85, 2)).toBe(115);
+  });
+
+  it("parks 25 seconds after the wave that was just recorded", () => {
+    expect(skipTargetAfter(85, 1)).toBe(110);
+    expect(skipTargetAfter(85, 2)).toBe(140);
+  });
+
+  it("starts from a 40 second default", () => {
+    expect(DEFAULT_FIRST_WAVE_SECONDS).toBe(40);
   });
 });

@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import styles from "@/app/page.module.css";
 import { readStoredAdminToken, storeAdminToken } from "@/lib/adminToken";
 import type { WaveNote, WaveState } from "@/lib/api";
 import {
+  DEFAULT_FIRST_WAVE_SECONDS,
   MAX_WAVES,
-  WAVE_INTERVAL_SECONDS,
+  SKIP_SECONDS,
   WAVE_STATE_LABEL,
   formatClock,
   nextWaveNumber,
-  parseClock,
   recordWave,
   removeWave,
   retimeWaves,
+  skipTargetAfter,
   waveChipLabel,
   waveTime,
 } from "@/lib/waves";
@@ -62,21 +63,26 @@ export function WaveStrip({
   const [editing, setEditing] = useState(false);
   const [draftWaves, setDraftWaves] = useState<WaveNote[]>(waves);
   const [draftFirst, setDraftFirst] = useState<number | null>(firstWaveSeconds);
-  const [timeText, setTimeText] = useState("");
   const [targetWave, setTargetWave] = useState(1);
   const [token, setToken] = useState(readStoredAdminToken);
   const [error, setError] = useState("");
+  // A position the video should be moved to as soon as the player can be controlled. A ref,
+  // because nothing is drawn from it; it is consumed once by the effect below.
+  const parkAt = useRef<number | null>(null);
 
   const waveNumber = Math.min(targetWave, MAX_WAVES);
 
   function open() {
     setDraftWaves(waves);
-    setDraftFirst(firstWaveSeconds);
-    setTimeText(firstWaveSeconds === null ? "" : formatClock(firstWaveSeconds));
+    // Until the first wave is set by hand, the default is used, so recording can start at once.
+    const first = firstWaveSeconds ?? DEFAULT_FIRST_WAVE_SECONDS;
+    setDraftFirst(first);
     setTargetWave(nextWaveNumber(waves));
     setError("");
     setEditing(true);
     onEditingChange?.(true);
+    // The player is only loaded once editing starts, so this waits for it (see the effect below).
+    parkAt.current = first;
   }
 
   function close() {
@@ -86,25 +92,16 @@ export function WaveStrip({
 
   function setFirstWave(seconds: number) {
     setError("");
-    setTimeText(formatClock(seconds));
     setDraftFirst(seconds);
     setDraftWaves((previous) => retimeWaves(previous, seconds));
+    setTargetWave(nextWaveNumber(draftWaves));
     seekAndPause(seconds);
-  }
-
-  function applyTypedTime() {
-    const seconds = parseClock(timeText);
-    if (seconds === null) {
-      setError("時刻は「1:25」または秒数で入力してください。");
-      return;
-    }
-    setFirstWave(seconds);
   }
 
   function useCurrentTime() {
     const seconds = currentTime();
     if (seconds === null) {
-      setError("プレーヤーの準備ができていません。時刻を直接入力してください。");
+      setError("プレーヤーの準備ができていません。しばらくしてから、もう一度押してください。");
       return;
     }
     setFirstWave(seconds);
@@ -117,9 +114,8 @@ export function WaveStrip({
     }
     setError("");
     setDraftWaves((previous) => recordWave(previous, draftFirst, waveNumber, state));
-    const following = Math.min(waveNumber + 1, MAX_WAVES);
-    setTargetWave(following);
-    seekAndPause(waveTime(draftFirst, following));
+    setTargetWave(Math.min(waveNumber + 1, MAX_WAVES));
+    seekAndPause(skipTargetAfter(draftFirst, waveNumber));
   }
 
   function remove(number: number) {
@@ -147,6 +143,13 @@ export function WaveStrip({
       );
     }
   }
+
+  useEffect(() => {
+    if (parkAt.current !== null && editing && playerReady) {
+      seekAndPause(parkAt.current);
+      parkAt.current = null;
+    }
+  }, [editing, playerReady, seekAndPause]);
 
   useEffect(() => {
     if (!editing) {
@@ -209,43 +212,35 @@ export function WaveStrip({
       aria-label="ウェーブ管理（編集）"
     >
       <div className={styles.waveStripEditHeader}>
-        <h4 className={styles.waveStripTitle}>ウェーブ管理（編集）</h4>
+        <div className={styles.waveStripEditTitle}>
+          <h4 className={styles.waveStripTitle}>ウェーブ管理（編集）</h4>
+          <button
+            type="button"
+            className={styles.waveStripHeaderButton}
+            disabled={!playerReady}
+            title={playerReady ? undefined : "プレーヤーの準備中です"}
+            onClick={useCurrentTime}
+          >
+            ファーストウェーブの時間を現在時間に設定
+          </button>
+          <span className={styles.helpWrapper}>
+            <button
+              type="button"
+              className={styles.helpIcon}
+              aria-label="ウェーブ管理の使い方"
+              aria-describedby="wave-help-text"
+            >
+              ?
+            </button>
+            <span id="wave-help-text" role="tooltip" className={styles.helpTooltip}>
+              ウェーブは概要欄から取得できないため、動画を見ながら入力します。ボタンを押すと記録し、
+              {SKIP_SECONDS}秒先へ送って一時停止します。向きは、この動画の「自分側」のチャンピオンから見たものです。
+              間違えたときは、そのウェーブの左端の赤い×で削除して、入力し直してください。
+            </span>
+          </span>
+        </div>
         <button type="button" className={styles.loadCandidatesButton} onClick={close}>
           閉じる
-        </button>
-      </div>
-
-      <p className={styles.emptyAnalysisNote}>
-        ウェーブは概要欄から取得できないため、動画を見ながら入力します。ボタンを押すと記録し、
-        {WAVE_INTERVAL_SECONDS}秒先へ送って一時停止します。向きは、この動画の「自分側」のチャンピオンから見たものです。
-        間違えたときは、そのウェーブを削除して、入力し直してください。
-      </p>
-
-      <div className={styles.waveStripRow}>
-        <label htmlFor="first-wave-time">最初のウェーブの時刻</label>
-        <input
-          id="first-wave-time"
-          className={styles.timelineTimeInput}
-          placeholder="1:25"
-          value={timeText}
-          onChange={(event) => setTimeText(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              applyTypedTime();
-            }
-          }}
-        />
-        <button type="button" className={styles.loadCandidatesButton} onClick={applyTypedTime}>
-          設定
-        </button>
-        <button
-          type="button"
-          className={styles.loadCandidatesButton}
-          disabled={!playerReady}
-          title={playerReady ? undefined : "プレーヤーの準備中です"}
-          onClick={useCurrentTime}
-        >
-          今の再生位置にする
         </button>
       </div>
 
@@ -274,18 +269,19 @@ export function WaveStrip({
       {draftWaves.length > 0 && (
         <ul className={styles.waveStripDeleteList}>
           {draftWaves.map((wave) => (
-            <li key={wave.waveNumber} className={styles.waveStripDeleteItem}>
+            <li key={wave.waveNumber} className={styles.waveEditItem}>
+              <span className={styles.waveEditTime}>{formatClock(wave.timeSeconds)}</span>
               <span className={`${styles.waveChip} ${styles[`waveChip_${wave.state}`]}`}>
+                <button
+                  type="button"
+                  className={styles.waveDeleteMark}
+                  aria-label={`ウェーブ${wave.waveNumber}を削除`}
+                  onClick={() => remove(wave.waveNumber)}
+                >
+                  ×
+                </button>
                 {waveChipLabel(wave)}
               </span>
-              <button
-                type="button"
-                className={styles.loadCandidatesButton}
-                aria-label={`ウェーブ${wave.waveNumber}を削除`}
-                onClick={() => remove(wave.waveNumber)}
-              >
-                削除
-              </button>
             </li>
           ))}
         </ul>
