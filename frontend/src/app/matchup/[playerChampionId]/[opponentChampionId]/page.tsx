@@ -561,18 +561,20 @@ function MatchupContent() {
               className={`${styles.videoEmbedCard} ${styles.videoEmbedCardWithSelector}`}
             >
               {activeEmbedUrl && (
-                <div className={styles.videoPlayerWrapper}>
-                  <iframe
-                    ref={setPlayerFrame}
-                    key={`${activeVideo.id}-${playbackStartSeconds ?? 0}`}
-                    className={styles.videoPlayer}
-                    src={activeEmbedUrl}
-                    title={activeVideo.title}
-                    loading="lazy"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerPolicy="strict-origin-when-cross-origin"
-                    allowFullScreen
-                  />
+                <div className={styles.videoPlayerFrame}>
+                  <div className={styles.videoPlayerWrapper}>
+                    <iframe
+                      ref={setPlayerFrame}
+                      key={`${activeVideo.id}-${playbackStartSeconds ?? 0}`}
+                      className={styles.videoPlayer}
+                      src={activeEmbedUrl}
+                      title={activeVideo.title}
+                      loading="lazy"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin"
+                      allowFullScreen
+                    />
+                  </div>
                 </div>
               )}
 
@@ -670,7 +672,6 @@ function MatchupContent() {
                 }
                 playerReady={player.ready}
                 currentTime={player.currentTime}
-                seekAndPause={player.seekAndPause}
                 onEditingChange={setWaveEditing}
                 onJumpToTimestamp={(seconds) => {
                   setPlaybackStartSeconds(seconds);

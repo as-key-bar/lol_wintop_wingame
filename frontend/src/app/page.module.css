@@ -529,11 +529,14 @@
   background: #14263d;
 }
 
+/*
+ * Only the player is narrowed; the card keeps its full width so the information bar, the
+ * wave strip and the build panel below it do not wrap and grow taller.
+ */
 .videoEmbedCard {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: calc((100vh - 92px) * 16 / 9);
   margin: 0 auto;
   overflow: hidden;
   border: 1px solid #2a3444;
@@ -541,8 +544,18 @@
   background: #0e1622;
 }
 
-.videoEmbedCardWithSelector {
-  max-width: calc((100vh - 138px) * 16 / 9);
+/*
+ * The player is sized from the screen height so that, with the wave editor open, the
+ * player, the video information bar and the editor fit on one screen:
+ *   page header and video selector 182 + info bar 74 + wave editor 280 + margin 24 = 560px.
+ * It is never smaller than 270px high (480px wide); on a short screen the page then scrolls
+ * instead of shrinking the video further. The width follows from the 16:9 ratio.
+ */
+.videoPlayerFrame {
+  --player-room: 560px;
+  --player-height: max(270px, calc(100vh - var(--player-room)));
+  width: min(100%, calc(var(--player-height) * 16 / 9));
+  margin: 0 auto;
 }
 
 .videoPlayerWrapper {

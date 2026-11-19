@@ -6,11 +6,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // Reference: https://developers.google.com/youtube/iframe_api_reference
 export type YouTubePlayer = {
   getCurrentTime: () => number;
-  seekTo: (seconds: number, allowSeekAhead: boolean) => void;
-  pauseVideo: () => void;
-  playVideo: () => void;
-  getPlayerState: () => number;
-  destroy: () => void;
 };
 
 type YouTubeNamespace = {
@@ -65,11 +60,10 @@ export type PlayerControls = {
   ready: boolean;
   failed: boolean;
   currentTime: () => number | null;
-  seekAndPause: (seconds: number) => void;
 };
 
-// Controls the player inside the given iframe. It only reads the time and seeks and pauses;
-// it does not modify the player's UI or its standard playback.
+// Reads the playback position of the player inside the given iframe. It does not move,
+// pause or otherwise control the video, and does not modify the player's UI.
 export function useYouTubePlayer(
   iframe: HTMLIFrameElement | null,
 ): PlayerControls {
@@ -119,20 +113,10 @@ export function useYouTubePlayer(
     return player ? Math.floor(player.getCurrentTime()) : null;
   }, []);
 
-  const seekAndPause = useCallback((seconds: number) => {
-    const player = playerRef.current;
-    if (!player) {
-      return;
-    }
-    player.seekTo(Math.max(0, seconds), true);
-    player.pauseVideo();
-  }, []);
-
   const current = state.frame === iframe && iframe !== null;
   return {
     ready: current && state.ready,
     failed: current && state.failed,
     currentTime,
-    seekAndPause,
   };
 }

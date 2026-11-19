@@ -15,7 +15,6 @@ function renderStrip(
 ) {
   const onSave = vi.fn().mockResolvedValue(undefined);
   const onJumpToTimestamp = vi.fn();
-  const seekAndPause = vi.fn();
   const onEditingChange = vi.fn();
   render(
     <WaveStrip
@@ -26,12 +25,11 @@ function renderStrip(
       onJumpToTimestamp={onJumpToTimestamp}
       playerReady
       currentTime={() => 92}
-      seekAndPause={seekAndPause}
       onEditingChange={onEditingChange}
       {...props}
     />,
   );
-  return { onSave, onJumpToTimestamp, seekAndPause, onEditingChange };
+  return { onSave, onJumpToTimestamp, onEditingChange };
 }
 
 afterEach(() => {
@@ -88,43 +86,15 @@ describe("WaveStrip (edit view)", () => {
     expect(onEditingChange).toHaveBeenLastCalledWith(true);
   });
 
-  it("parks the video at the 40 second default as soon as the editor opens", async () => {
-    const { seekAndPause } = await openEditor();
+  it("never moves or pauses the video: the strip has no seek control at all", async () => {
+    const { onJumpToTimestamp } = await openEditor({ waves: sample, firstWaveSeconds: 85 });
 
-    expect(seekAndPause).toHaveBeenCalledTimes(1);
-    expect(seekAndPause).toHaveBeenCalledWith(40);
-  });
+    await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "ファーストウェーブの時間を現在時間に設定" }),
+    );
 
-  it("does not park the video when only viewing", () => {
-    const { seekAndPause } = renderStrip();
-
-    expect(seekAndPause).not.toHaveBeenCalled();
-  });
-
-  it("waits for the player before parking the video", async () => {
-    const seekAndPause = vi.fn();
-    const props = {
-      waves: [] as WaveNote[],
-      firstWaveSeconds: null,
-      onSave: vi.fn().mockResolvedValue(undefined),
-      saving: false,
-      onJumpToTimestamp: vi.fn(),
-      currentTime: () => 92 as number | null,
-      seekAndPause,
-    };
-    const { rerender } = render(<WaveStrip {...props} playerReady={false} />);
-    await userEvent.click(screen.getByRole("button", { name: "編集" }));
-    expect(seekAndPause).not.toHaveBeenCalled();
-
-    rerender(<WaveStrip {...props} playerReady />);
-
-    expect(seekAndPause).toHaveBeenCalledWith(40);
-  });
-
-  it("parks at an already set first wave time instead of the default", async () => {
-    const { seekAndPause } = await openEditor({ waves: sample, firstWaveSeconds: 85 });
-
-    expect(seekAndPause).toHaveBeenCalledWith(85);
+    expect(onJumpToTimestamp).not.toHaveBeenCalled();
   });
 
   it("has no typed first-wave field and only the 'set to the current time' button", async () => {
@@ -154,7 +124,7 @@ describe("WaveStrip (edit view)", () => {
 
     const help = screen.getByRole("tooltip");
     expect(help).toHaveTextContent("概要欄から取得できないため");
-    expect(help).toHaveTextContent("25秒先へ送って一時停止");
+    expect(help).not.toHaveTextContent("秒先へ送って");
     expect(help).toHaveTextContent("赤い×で削除");
     expect(screen.getByRole("button", { name: "ウェーブ管理の使い方" })).toHaveAttribute(
       "aria-describedby",
@@ -162,8 +132,8 @@ describe("WaveStrip (edit view)", () => {
     );
   });
 
-  it("sets the first wave to the current playback time, re-times the waves and seeks there", async () => {
-    const { seekAndPause, onSave } = await openEditor({
+  it("sets the first wave to the current playback time and re-times the waves", async () => {
+    const { onSave } = await openEditor({
       waves: sample.slice(0, 2),
       firstWaveSeconds: 85,
       currentTime: () => 92,
@@ -172,7 +142,6 @@ describe("WaveStrip (edit view)", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "ファーストウェーブの時間を現在時間に設定" }),
     );
-    expect(seekAndPause).toHaveBeenLastCalledWith(92);
     await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
     await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
 
@@ -190,9 +159,20 @@ describe("WaveStrip (edit view)", () => {
     ).toBeDisabled();
   });
 
-  it("records from the 40 second default without any setup and stores the 30 second spacing", async () => {
-    const { onSave } = await openEditor();
+  it("records no wave until the first wave time has been set from the player", async () => {
+    await openEditor();
 
+    expect(screen.queryByRole("button", { name: /^プッシュ/ })).not.toBeInTheDocument();
+    await userEvent.keyboard("1");
+    expect(within(editRegion()).queryAllByRole("listitem")).toHaveLength(0);
+  });
+
+  it("starts recording once the first wave time is set, with waves 30 seconds apart", async () => {
+    const { onSave } = await openEditor({ currentTime: () => 40 });
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "ファーストウェーブの時間を現在時間に設定" }),
+    );
     await userEvent.keyboard("1");
     await userEvent.keyboard("2");
     await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
@@ -207,18 +187,7 @@ describe("WaveStrip (edit view)", () => {
     ]);
   });
 
-  it("moves the video only 25 seconds after recording, from that wave's time", async () => {
-    const { seekAndPause } = await openEditor({ firstWaveSeconds: 85 });
-    seekAndPause.mockClear();
-
-    await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
-    expect(seekAndPause).toHaveBeenLastCalledWith(110);
-
-    await userEvent.click(screen.getByRole("button", { name: /^プル/ }));
-    expect(seekAndPause).toHaveBeenLastCalledWith(140);
-  });
-
-  it("shows the next wave at its 30 second based time even though the video moves 25 seconds", async () => {
+  it("shows the next wave at its stored time after recording", async () => {
     await openEditor({ firstWaveSeconds: 85 });
 
     await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));

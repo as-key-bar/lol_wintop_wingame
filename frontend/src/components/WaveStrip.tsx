@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "@/app/page.module.css";
 import { readStoredAdminToken, storeAdminToken } from "@/lib/adminToken";
 import type { WaveNote, WaveState } from "@/lib/api";
 import {
-  DEFAULT_FIRST_WAVE_SECONDS,
   MAX_WAVES,
-  SKIP_SECONDS,
   WAVE_STATE_LABEL,
   formatClock,
   nextWaveNumber,
   recordWave,
   removeWave,
   retimeWaves,
-  skipTargetAfter,
   waveChipLabel,
   waveTime,
 } from "@/lib/waves";
@@ -31,9 +28,9 @@ type WaveStripProps = {
   ) => Promise<void>;
   saving: boolean;
   onJumpToTimestamp: (seconds: number) => void;
+  // The strip only reads the playback position; it never moves the video by itself.
   playerReady: boolean;
   currentTime: () => number | null;
-  seekAndPause: (seconds: number) => void;
   // Lets the page load the player API only while the strip is being edited.
   onEditingChange?: (editing: boolean) => void;
 };
@@ -57,7 +54,6 @@ export function WaveStrip({
   onJumpToTimestamp,
   playerReady,
   currentTime,
-  seekAndPause,
   onEditingChange,
 }: WaveStripProps) {
   const [editing, setEditing] = useState(false);
@@ -66,23 +62,16 @@ export function WaveStrip({
   const [targetWave, setTargetWave] = useState(1);
   const [token, setToken] = useState(readStoredAdminToken);
   const [error, setError] = useState("");
-  // A position the video should be moved to as soon as the player can be controlled. A ref,
-  // because nothing is drawn from it; it is consumed once by the effect below.
-  const parkAt = useRef<number | null>(null);
 
   const waveNumber = Math.min(targetWave, MAX_WAVES);
 
   function open() {
     setDraftWaves(waves);
-    // Until the first wave is set by hand, the default is used, so recording can start at once.
-    const first = firstWaveSeconds ?? DEFAULT_FIRST_WAVE_SECONDS;
-    setDraftFirst(first);
+    setDraftFirst(firstWaveSeconds);
     setTargetWave(nextWaveNumber(waves));
     setError("");
     setEditing(true);
     onEditingChange?.(true);
-    // The player is only loaded once editing starts, so this waits for it (see the effect below).
-    parkAt.current = first;
   }
 
   function close() {
@@ -95,7 +84,6 @@ export function WaveStrip({
     setDraftFirst(seconds);
     setDraftWaves((previous) => retimeWaves(previous, seconds));
     setTargetWave(nextWaveNumber(draftWaves));
-    seekAndPause(seconds);
   }
 
   function useCurrentTime() {
@@ -115,7 +103,6 @@ export function WaveStrip({
     setError("");
     setDraftWaves((previous) => recordWave(previous, draftFirst, waveNumber, state));
     setTargetWave(Math.min(waveNumber + 1, MAX_WAVES));
-    seekAndPause(skipTargetAfter(draftFirst, waveNumber));
   }
 
   function remove(number: number) {
@@ -143,13 +130,6 @@ export function WaveStrip({
       );
     }
   }
-
-  useEffect(() => {
-    if (parkAt.current !== null && editing && playerReady) {
-      seekAndPause(parkAt.current);
-      parkAt.current = null;
-    }
-  }, [editing, playerReady, seekAndPause]);
 
   useEffect(() => {
     if (!editing) {
@@ -233,8 +213,8 @@ export function WaveStrip({
               ?
             </button>
             <span id="wave-help-text" role="tooltip" className={styles.helpTooltip}>
-              ウェーブは概要欄から取得できないため、動画を見ながら入力します。ボタンを押すと記録し、
-              {SKIP_SECONDS}秒先へ送って一時停止します。向きは、この動画の「自分側」のチャンピオンから見たものです。
+              ウェーブは概要欄から取得できないため、動画を見ながら入力します。
+              最初のウェーブが来る位置で「現在時間に設定」を押し、あとはウェーブごとにボタンを押して記録します。向きは、この動画の「自分側」のチャンピオンから見たものです。
               間違えたときは、そのウェーブの左端の赤い×で削除して、入力し直してください。
             </span>
           </span>
