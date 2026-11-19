@@ -34,6 +34,22 @@ class VideoTimestamp(BaseModel):
     isKillEvent: bool = False
 
 
+WAVE_STATES = ("push", "pull", "neutral", "unknown")
+
+
+class WaveNote(BaseModel):
+    """One minion wave as noted by hand. Waves cannot be read from a description, so they
+    are always manual; a missing note means "not noted yet", never "neutral"."""
+
+    waveNumber: int = Field(ge=1, le=20)
+    timeSeconds: int = Field(ge=0, le=86400)
+    # push/pull describe where the wave went relative to the video's player (the champion
+    # selected as "me"); neutral means it stayed near the middle; unknown means the noter
+    # could not tell.
+    state: Literal["push", "pull", "neutral", "unknown"]
+    note: str = Field(default="", max_length=200)
+
+
 class VideoMetadataAnalysis(BaseModel):
     analysisStatus: Literal["unanalyzed", "auto_parsed", "manual_verified"] = (
         "unanalyzed"
@@ -42,6 +58,10 @@ class VideoMetadataAnalysis(BaseModel):
     summonerSpells: list[str] = Field(default_factory=list, max_length=2)
     startingItems: list[str] = Field(default_factory=list, max_length=6)
     timestamps: list[VideoTimestamp] = Field(default_factory=list, max_length=300)
+    waves: list[WaveNote] = Field(default_factory=list, max_length=20)
+    # When the early-wave notes start: the time the first wave reaches the lane. Later waves
+    # are 30 seconds apart. None until someone sets it.
+    firstWaveSeconds: int | None = Field(default=None, ge=0, le=3600)
 
 
 @lru_cache(maxsize=1)

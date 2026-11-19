@@ -16,8 +16,9 @@ from app.database import (
 logger = logging.getLogger(__name__)
 
 # YouTube API Services Developer Policies III.E.4.c/d: data obtained from the API may be
-# stored for at most 30 calendar days. The default leaves a margin for a stopped job.
-DEFAULT_RETENTION_DAYS = 28
+# stored for at most 30 calendar days. The default is three weeks: it keeps a margin for a
+# stopped job and also keeps the information fresh across game patches.
+DEFAULT_RETENTION_DAYS = 21
 MAX_RETENTION_DAYS = 30
 
 

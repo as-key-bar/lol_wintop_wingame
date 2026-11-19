@@ -18,6 +18,7 @@ import {
   type MatchupVideo,
   type VideoMetadataAnalysis,
 } from "@/lib/api";
+import { useYouTubePlayer } from "@/lib/youtubePlayer";
 import styles from "@/app/page.module.css";
 
 function sortMatchupVideos(videos: MatchupVideo[]): MatchupVideo[] {
@@ -59,6 +60,11 @@ function MatchupContent() {
   const [analyzingVideoId, setAnalyzingVideoId] = useState<string | null>(null);
   const [savingMetadata, setSavingMetadata] = useState(false);
   const [error, setError] = useState("");
+  const [playerFrame, setPlayerFrame] = useState<HTMLIFrameElement | null>(null);
+  const [wavesEditing, setWavesEditing] = useState(false);
+  // The player API is only loaded while a manual editor is open, so ordinary viewing
+  // never pulls in the extra script.
+  const player = useYouTubePlayer(wavesEditing ? playerFrame : null);
 
   useEffect(() => {
     if (!playerChampionId || !opponentChampionId) {
@@ -492,6 +498,7 @@ function MatchupContent() {
               {activeEmbedUrl && (
                 <div className={styles.videoPlayerWrapper}>
                   <iframe
+                    ref={setPlayerFrame}
                     key={`${activeVideo.id}-${playbackStartSeconds ?? 0}`}
                     className={styles.videoPlayer}
                     src={activeEmbedUrl}
@@ -599,6 +606,10 @@ function MatchupContent() {
                 onSaveManualMetadata={(updated, adminToken) =>
                   handleSaveManualMetadata(activeVideo, updated, adminToken)
                 }
+                playerReady={player.ready}
+                currentTime={player.currentTime}
+                seekAndPause={player.seekAndPause}
+                onEditingChange={setWavesEditing}
                 onJumpToTimestamp={(seconds) => {
                   setPlaybackStartSeconds(seconds);
                   window.scrollTo({ top: 0, behavior: "smooth" });

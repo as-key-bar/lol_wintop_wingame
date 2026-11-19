@@ -26,6 +26,7 @@ from app.video_analysis import (
     RuneSelection,
     VideoMetadataAnalysis,
     VideoTimestamp,
+    WaveNote,
     fetch_and_analyze_youtube_video,
 )
 from app.youtube_search import (
@@ -39,6 +40,8 @@ from app.youtube_search import (
 logger = logging.getLogger(__name__)
 MATCHUPS_PATH = Path(__file__).parent / "data" / "matchups.json"
 YOUTUBE_WATCH_HOSTS = {"www.youtube.com", "youtube.com"}
+# Saved videos come first (by votes), then search candidates fill the remaining slots.
+MAX_VIDEOS_PER_MATCHUP = 8
 YOUTUBE_VIDEO_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
 YOUTUBE_CHANNEL_HOSTS = {"www.youtube.com", "youtube.com"}
 MAX_TEXT_LENGTH = 512
@@ -241,6 +244,11 @@ def _metadata_record_to_model(
             if meta_record.timestamps_json
             else []
         )
+        waves = (
+            [WaveNote.model_validate(w) for w in json.loads(meta_record.waves_json)]
+            if meta_record.waves_json
+            else []
+        )
         status: Literal["unanalyzed", "auto_parsed", "manual_verified"] = (
             meta_record.analysis_status
             if meta_record.analysis_status
@@ -253,6 +261,8 @@ def _metadata_record_to_model(
             summonerSpells=spells,
             startingItems=items,
             timestamps=timestamps,
+            waves=waves,
+            firstWaveSeconds=meta_record.first_wave_seconds,
         )
     except Exception:
         logger.warning(
@@ -291,6 +301,10 @@ def _upsert_metadata_record(
     meta_record.timestamps_json = json.dumps(
         [ts.model_dump() for ts in analysis.timestamps], ensure_ascii=False
     )
+    meta_record.waves_json = json.dumps(
+        [w.model_dump() for w in analysis.waves], ensure_ascii=False
+    )
+    meta_record.first_wave_seconds = analysis.firstWaveSeconds
     meta_record.updated_at = now_iso
     return meta_record
 
@@ -430,12 +444,9 @@ def get_matchup_videos(
         voter_hash=voter_hash,
     )
 
-    if saved_videos and not include_candidates:
-        return saved_videos
-
-    if len(saved_videos) >= 5:
-        return saved_videos
-
+    # Saved (upvoted) videos no longer hide the search results: both are shown together so
+    # a vote does not make every other candidate disappear. The search itself is cached
+    # (see youtube_search.SEARCH_CACHE_TTL_SECONDS) to protect the YouTube API quota.
     seen_urls = {video.videoUrl for video in saved_videos}
     candidates = search_youtube_matchup_candidates(
         player_champion_id=player_champion_id,
@@ -452,7 +463,7 @@ def get_matchup_videos(
             continue
         seen_urls.add(candidate_video.videoUrl)
         combined.append(candidate_video)
-        if len(combined) >= 5:
+        if len(combined) >= MAX_VIDEOS_PER_MATCHUP:
             break
 
     return combined
@@ -662,6 +673,8 @@ def save_manual_video_metadata(
         summonerSpells=metadata.summonerSpells[:2],
         startingItems=metadata.startingItems[:6],
         timestamps=metadata.timestamps,
+        waves=sorted(metadata.waves, key=lambda w: w.waveNumber),
+        firstWaveSeconds=metadata.firstWaveSeconds,
     )
 
     seed_videos = load_matchups()

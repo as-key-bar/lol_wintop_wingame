@@ -3,11 +3,16 @@
 import Image from "next/image";
 import { useState } from "react";
 import styles from "@/app/page.module.css";
+import { TimelineEditor } from "@/components/TimelineEditor";
+import { WaveTagger } from "@/components/WaveTagger";
 import {
   type GameAssetsCatalog,
   type RuneSelection,
   type VideoMetadataAnalysis,
+  type VideoTimestamp,
+  type WaveNote,
 } from "@/lib/api";
+import { WAVE_STATE_LABEL, formatClock } from "@/lib/waves";
 
 type VideoMetadataPanelProps = {
   metadata: VideoMetadataAnalysis | null | undefined;
@@ -20,6 +25,12 @@ type VideoMetadataPanelProps = {
     adminToken: string,
   ) => Promise<void>;
   onJumpToTimestamp: (seconds: number) => void;
+  // Player controls for wave tagging; absent when the video cannot be controlled.
+  playerReady?: boolean;
+  currentTime?: () => number | null;
+  seekAndPause?: (seconds: number) => void;
+  // Called when the editor opens or closes so the page can make the player controllable.
+  onEditingChange?: (editing: boolean) => void;
 };
 
 const ADMIN_TOKEN_STORAGE_KEY = "wintop_admin_token";
@@ -48,6 +59,10 @@ export function VideoMetadataPanel({
   onAnalyzeDescription,
   onSaveManualMetadata,
   onJumpToTimestamp,
+  playerReady = false,
+  currentTime = () => null,
+  seekAndPause = () => undefined,
+  onEditingChange,
 }: VideoMetadataPanelProps) {
   const [editing, setEditing] = useState(false);
   const [onlyKills, setOnlyKills] = useState(false);
@@ -63,6 +78,9 @@ export function VideoMetadataPanel({
   const [draftShards, setDraftShards] = useState<number[]>([]);
   const [draftSpells, setDraftSpells] = useState<string[]>([]);
   const [draftItems, setDraftItems] = useState<string[]>([]);
+  const [draftTimestamps, setDraftTimestamps] = useState<VideoTimestamp[]>([]);
+  const [draftWaves, setDraftWaves] = useState<WaveNote[]>([]);
+  const [draftFirstWave, setDraftFirstWave] = useState<number | null>(null);
   const [adminToken, setAdminToken] = useState(readStoredAdminToken);
   const [saveError, setSaveError] = useState("");
 
@@ -86,7 +104,16 @@ export function VideoMetadataPanel({
     setDraftShards(existingRunes?.statShards ?? [5008, 5008, 5001]);
     setDraftSpells(metadata?.summonerSpells ?? []);
     setDraftItems(metadata?.startingItems ?? []);
+    setDraftTimestamps(metadata?.timestamps ?? []);
+    setDraftWaves(metadata?.waves ?? []);
+    setDraftFirstWave(metadata?.firstWaveSeconds ?? null);
     setEditing(true);
+    onEditingChange?.(true);
+  }
+
+  function closeEditor() {
+    setEditing(false);
+    onEditingChange?.(false);
   }
 
   function togglePrimaryRune(slotIndex: number, runeId: number) {
@@ -177,12 +204,14 @@ export function VideoMetadataPanel({
           runes: runesPayload,
           summonerSpells: draftSpells,
           startingItems: draftItems,
-          timestamps: metadata?.timestamps ?? [],
+          timestamps: draftTimestamps,
+          waves: draftWaves,
+          firstWaveSeconds: draftFirstWave,
         },
         token,
       );
       storeAdminToken(token);
-      setEditing(false);
+      closeEditor();
     } catch (saveFailure) {
       setSaveError(
         saveFailure instanceof Error
@@ -266,7 +295,7 @@ export function VideoMetadataPanel({
           <button
             type="button"
             className={styles.loadCandidatesButton}
-            onClick={() => (editing ? setEditing(false) : openEditor())}
+            onClick={() => (editing ? closeEditor() : openEditor())}
           >
             {editing ? "編集を閉じる" : "ビルドを手動編集"}
           </button>
@@ -483,6 +512,24 @@ export function VideoMetadataPanel({
               ))}
             </div>
           </div>
+
+          <TimelineEditor
+            timestamps={draftTimestamps}
+            onChange={setDraftTimestamps}
+            currentTime={playerReady ? currentTime : undefined}
+          />
+
+          <WaveTagger
+            waves={draftWaves}
+            firstWaveSeconds={draftFirstWave}
+            onChange={(waves, first) => {
+              setDraftWaves(waves);
+              setDraftFirstWave(first);
+            }}
+            playerReady={playerReady}
+            currentTime={currentTime}
+            seekAndPause={seekAndPause}
+          />
 
           <div className={styles.editorSection}>
             <h4>管理者トークン</h4>
@@ -773,6 +820,39 @@ export function VideoMetadataPanel({
             ) : (
               <p className={styles.emptyAnalysisNote}>
                 タイムスタンプ情報は未抽出です。「概要欄から自動取得」を押すと動画概要欄のチャプター・キル時間を抽出します。
+              </p>
+            )}
+          </div>
+
+          <div className={styles.analysisCard}>
+            <h4 className={styles.analysisCardHeading}>
+              ウェーブのプッシュ・プル（手動入力・クリックで再生位置ジャンプ）
+            </h4>
+            {(metadata?.waves ?? []).length > 0 ? (
+              <div className={styles.timelineList}>
+                {(metadata?.waves ?? []).map((wave) => (
+                  <button
+                    key={wave.waveNumber}
+                    type="button"
+                    className={styles.timestampChip}
+                    onClick={() => onJumpToTimestamp(wave.timeSeconds)}
+                  >
+                    <span className={styles.timestampTime}>
+                      ▶ {formatClock(wave.timeSeconds)}
+                    </span>
+                    <span className={styles.killTag}>
+                      {WAVE_STATE_LABEL[wave.state]}
+                    </span>
+                    <span className={styles.timestampLabel}>
+                      ウェーブ{wave.waveNumber}
+                      {wave.note ? `：${wave.note}` : ""}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.emptyAnalysisNote}>
+                ウェーブは未入力です。概要欄からは取得できないため、「ビルドを手動編集」から、動画を見ながら入力します。
               </p>
             )}
           </div>

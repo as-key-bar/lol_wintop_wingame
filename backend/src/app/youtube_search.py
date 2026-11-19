@@ -392,7 +392,10 @@ def build_search_query(player: Champion, opponent: Champion) -> str:
 
 
 SEARCH_CACHE_MAX_ENTRIES = 256
-SEARCH_CACHE_TTL_SECONDS = 6 * 3600
+# 72 hours: searching on every visit (even for matchups that already have saved videos) would
+# spend about 100 quota units per lookup of the 10,000 per day. Stays well inside the retention
+# limit, so cached results are never older than the stored data may be.
+SEARCH_CACHE_TTL_SECONDS = 72 * 3600
 # A failed or empty lookup must not stick for hours; retry soon.
 EMPTY_RESULT_TTL_SECONDS = 120
 _search_cache: "OrderedDict[tuple[str, str, int], tuple[float, tuple[dict[str, Any], ...]]]" = OrderedDict()

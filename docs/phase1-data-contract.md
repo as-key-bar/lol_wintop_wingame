@@ -11,7 +11,7 @@ Phase 1は、チャンピオン選択結果に対応する確認済みリプレ�
 動画の出どころは次の2つで、どちらも YouTube 視聴ページへのリンクと埋め込みのみを扱う。動画ファイル・サムネイルの複製や再配布は行わない。
 
 - **保存済み（`origin: "saved"`）**: DB（`matchup_videos`）に `verified` として保存された動画。`backend/src/app/data/matchups.json` に動画があれば起動時に投入する。公開に備えて、同梱のファイルは空にしている（第三者のチャンネルのデータを載せない）。取り込む場合は `scripts/update_matchup_catalog.py --playlist <URL>`。
-- **YouTube検索の候補（`origin: "youtube_search"`）**: 保存済みが0件のとき、または利用者が「YouTube候補を検索」を押したときだけ、YouTube を検索して得る。タイトルがマッチアップ条件（下記）を満たしたものだけを返す。管理者による個別確認は行わない。
+- **YouTube検索の候補（`origin: "youtube_search"`）**: マッチアップ画面を開くたびに、YouTube を検索して得る（**暫定。保存済みがあっても検索する**。仕様書 DEC-019）。検索結果は72時間キャッシュする。タイトルがマッチアップ条件（下記）を満たしたものだけを返す。管理者による個別確認は行わない。
 
 **候補を `verified` として扱う方針（決定: 2026-11-17）**: 検索候補は、タイトル条件を満たせば `verificationStatus: "verified"` として表示する。利用者が UV（👍 参考になった）を押すと、その候補は `verified` の保存済み動画として DB に保存され、次回から優先して表示される。UV を人による確認の代わりとして扱うため、画面では取得元バッジ（`DB保存済` / `YouTube検索`）で区別して示す。YouTube の検索は `YOUTUBE_API_KEY` があれば Data API v3、なければ検索ページの HTML 解析で行う（HTML 解析は規約・仕様変更のリスクがあるため、公開前に API へ移行する。TASK-005）。
 
@@ -99,10 +99,10 @@ Data Dragonを出典とし、チャンピオンの識別には表示名ではな
 
 クエリ:
 
-- `includeCandidates`（任意、既定 `false`）: `true` のとき、保存済みが5件未満なら YouTube 検索の候補を補う。
+- `includeCandidates`（任意）: 互換のために残している。保存済みがあっても検索するため、指定しても結果は変わらない。
 - `voterToken`（任意）: 指定すると `upvotedByViewer` を返す。
 
-並び順は、保存済み動画を UV 数の降順、ゲームパッチの降順、タイトルから推定したランクの降順とする。保存済みが1件でもあれば、`includeCandidates=true` でない限り YouTube にはアクセスしない。
+並び順は、保存済み動画を UV 数の降順、ゲームパッチの降順、タイトルから推定したランクの降順とし、その後ろに YouTube の検索結果を並べる（保存済みと重複する動画は除く）。合計は最大8件。**この並べ方は暫定で、運用しながら変更する可能性が高い**（TBD-007）。
 
 成功時 `200`:
 
@@ -167,7 +167,11 @@ Data Dragonを出典とし、チャンピオンの識別には表示名ではな
 | `runes` | object \| null | `primaryStyleId`、`subStyleId`、`primarySelections`（メイン4）、`subSelections`（サブ2）、`statShards`（3段）。ID は Data Dragon / `game_assets.json` のルーン ID |
 | `summonerSpells` | string[] | サモナースペルのID（例: `SummonerFlash`）。最大2つ |
 | `startingItems` | string[] | スタートアイテムのID。概要欄に `Starter Items:` 行がある場合、または手動登録の場合のみ。試合終了時の `Build:` 行からの推定は行わない（仕様書 4.4） |
-| `timestamps` | object[] | `timeSeconds`、`timeLabel`、`label`、`isKillEvent` |
+| `timestamps` | object[] | `timeSeconds`、`timeLabel`、`label`、`isKillEvent`。最大300件。手動で追加・変更・削除できる |
+| `waves` | object[] | ウェーブのプッシュ・プル。**手動入力のみ**（概要欄からは取得しない）。`waveNumber`（1〜20）、`timeSeconds`、`state`（`push` / `pull` / `neutral` / `unknown`）、`note`（200文字まで）。向きは、この動画の「自分側」のチャンピオンから見たもの。最大20件。未入力は「まだ入力していない」ことを表し、「中立」ではない |
+| `firstWaveSeconds` | integer \| null | 最初のウェーブが来る時刻（秒）。以降のウェーブは30秒間隔 |
+
+手動保存（`PUT /metadata`）では、全項目を上書きできる。自動取得した値に誤りや不足があり得るため。
 
 ### `GET /api/v1/game-assets`
 

@@ -26,12 +26,23 @@ export type VideoTimestamp = {
   isKillEvent: boolean;
 };
 
+export type WaveState = "push" | "pull" | "neutral" | "unknown";
+
+export type WaveNote = {
+  waveNumber: number;
+  timeSeconds: number;
+  state: WaveState;
+  note: string;
+};
+
 export type VideoMetadataAnalysis = {
   analysisStatus: "unanalyzed" | "auto_parsed" | "manual_verified";
   runes: RuneSelection | null;
   summonerSpells: string[];
   startingItems: string[];
   timestamps: VideoTimestamp[];
+  waves: WaveNote[];
+  firstWaveSeconds: number | null;
 };
 
 export type RuneAsset = {
@@ -151,10 +162,16 @@ export function getYouTubeEmbedUrl(
       return null;
     }
     const base = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
-    if (typeof startSeconds === "number" && startSeconds > 0) {
-      return `${base}?start=${Math.floor(startSeconds)}&autoplay=1`;
+    // enablejsapi lets the page read the playback time and seek (wave tagging).
+    const params = new URLSearchParams({ enablejsapi: "1" });
+    if (typeof window !== "undefined") {
+      params.set("origin", window.location.origin);
     }
-    return base;
+    if (typeof startSeconds === "number" && startSeconds > 0) {
+      params.set("start", String(Math.floor(startSeconds)));
+      params.set("autoplay", "1");
+    }
+    return `${base}?${params.toString()}`;
   } catch {
     return null;
   }

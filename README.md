@@ -6,7 +6,7 @@ League of Legendsのトップレーン向けマッチアップ攻略ツールで
 
 - Phase 1（チャンピオン選択、対面リプレイ、UV、MySQL永続化）：ほぼ完了
 - Phase 2A（概要欄の解析、ルーン9枠・スペル・タイムスタンプの表示と手動編集）：実装済み
-- Phase 2B（映像の画像認識によるスタートアイテム判定）：未着手
+- Phase 2B/3（手動入力ベース）：全項目の手動入力・修正、ウェーブのプッシュ・プルのワンボタン入力は実装済み（ローカルのみ。未デプロイ）。映像の画像認識は行いません（YouTube の書面許可が要るため）
 
 公開前に必要な作業（YouTube Data API キーの発行、Riotポリシーの確認、AWSデプロイの実施）と次のステップは、[開発引継ぎメモ](./docs/HANDOFF.md)と[仕様書の第8章](./LoLタイマン勝てるのツール.md)にまとめています。
 
@@ -74,7 +74,7 @@ AWS の EC2 1台に Docker Compose で載せる構成を用意しています（
 
 ## YouTube データの保存期限
 
-YouTube API で取得したデータ（動画のタイトル・チャンネル・URL、概要欄から抽出したビルド、その動画への UV）は、YouTube API Services Developer Policies III.E.4 に従い、**取得から28日で自動削除**します（上限は30日。`YOUTUBE_DATA_RETENTION_DAYS` で短くできますが、30を超える値は30に丸められます）。更新（再取得）はせず、単純に削除します。
+YouTube API で取得したデータ（動画のタイトル・チャンネル・URL、概要欄から抽出したビルド、その動画への UV）は、YouTube API Services Developer Policies III.E.4 に従い、**取得から3週間（21日）で自動削除**します（上限は30日。`YOUTUBE_DATA_RETENTION_DAYS` で短くできますが、30を超える値は30に丸められます）。更新（再取得）はせず、単純に削除します。
 
 - 削除は `python -m app.retention`（本番は systemd のタイマー、毎日 04:00 JST。`deploy/install-retention-timer.sh`）。
 - 期限切れの行は、削除ジョブが遅れても、API が返しません。
@@ -115,7 +115,7 @@ pytest backend/tests
 
 チャンピオン一覧APIは `GET /api/v1/champions?q=<検索語>` です。`q` は日本語名・英語名・登録済み別名・ローマ字表記を部分一致検索します。
 
-マッチアップ動画APIは `GET /api/v1/matchups/{playerChampionId}/{opponentChampionId}` です。MySQLの `matchup_videos` テーブル（`backend/src/app/data/matchups.json` に動画があれば起動時に投入されます。同梱のファイルは空です。DB未接続時はJSONにフォールバック）に保存された `verificationStatus: "verified"` のレコードを優先して返し、保存済み動画が0件の場合または `?includeCandidates=true` 指定時のみYouTube検索候補を補完します。また、`POST /api/v1/matchups/{playerChampionId}/{opponentChampionId}/upvote` で動画をUV（高評価トグル）すると、候補動画も即座にDBへ確認済みとして蓄積されます。プレイリストから初期マッチアップ一覧を更新する場合は `python3 scripts/update_matchup_catalog.py` を実行してください。
+マッチアップ動画APIは `GET /api/v1/matchups/{playerChampionId}/{opponentChampionId}` です。MySQLの `matchup_videos` テーブル（`backend/src/app/data/matchups.json` に動画があれば起動時に投入されます。同梱のファイルは空です。DB未接続時はJSONにフォールバック）に保存された `verificationStatus: "verified"` のレコード（UV の多い順）を先に、YouTube検索の結果をその後ろに並べて返します（最大8件）。**保存済みがあっても検索します**（暫定の方針。検索結果は72時間キャッシュ）。また、`POST /api/v1/matchups/{playerChampionId}/{opponentChampionId}/upvote` で動画をUV（高評価トグル）すると、候補動画も即座にDBへ確認済みとして蓄積されます。プレイリストから初期マッチアップ一覧を更新する場合は `python3 scripts/update_matchup_catalog.py` を実行してください。
 
 Phase 2Aで追加したAPIは次のとおりです。
 

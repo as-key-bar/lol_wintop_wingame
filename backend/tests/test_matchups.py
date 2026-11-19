@@ -227,30 +227,77 @@ def test_matchup_returns_503_when_data_source_is_invalid(
     }
 
 
-def test_matchup_does_not_call_youtube_when_saved_replay_exists(
+def _candidate(video_id: str, player: str = "Singed", opponent: str = "TahmKench") -> dict:
+    return {
+        "id": f"yt-{player.lower()}-vs-{opponent.lower()}-{video_id}",
+        "playerChampionId": player,
+        "opponentChampionId": opponent,
+        "title": f"{player} Top vs {opponent} - EUW Challenger Patch 26.22",
+        "videoUrl": f"https://www.youtube.com/watch?v={video_id}",
+        "channelName": "Example Channel",
+        "channelUrl": "https://www.youtube.com/@example",
+        "publishedAt": None,
+        "gamePatch": "26.22",
+        "verifiedAt": "2026-11-11T11:40:00+09:00",
+        "verificationStatus": "verified",
+        "embedStatus": "unknown",
+        "sourceUrl": "https://www.youtube.com/results?search_query=x",
+        "origin": "youtube_search",
+    }
+
+
+def test_matchup_searches_even_when_a_saved_replay_exists(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """A vote must not make the other candidates disappear (policy changed 2026-11-19)."""
     _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo02", "Singed", "TahmKench")])
+    calls = {"n": 0}
 
-    def fail_if_called(*args, **kwargs):
-        raise AssertionError(
-            "YouTube search must not be called when saved replays already exist"
-        )
+    def fake_search(player_champion_id, opponent_champion_id, max_results=5):
+        calls["n"] += 1
+        return [_candidate("extravideo1"), _candidate("extravideo2")]
 
-    monkeypatch.setattr(
-        matchups, "search_youtube_matchup_candidates", fail_if_called
-    )
+    monkeypatch.setattr(matchups, "search_youtube_matchup_candidates", fake_search)
 
-    # A single saved replay is enough to skip the YouTube search.
     response = get("/api/v1/matchups/Singed/TahmKench")
 
     assert response.status_code == 200
     items = response.json()["items"]
-    assert len(items) == 1
+    assert calls["n"] == 1
+    assert [item["origin"] for item in items] == ["saved", "youtube_search", "youtube_search"]
+
+
+def test_saved_videos_come_first_and_duplicates_of_saved_videos_are_dropped(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo02", "Singed", "TahmKench")])
+    monkeypatch.setattr(
+        matchups,
+        "search_youtube_matchup_candidates",
+        lambda *a, **k: [_candidate("seedvideo02"), _candidate("freshvideo1")],
+    )
+
+    items = get("/api/v1/matchups/Singed/TahmKench").json()["items"]
+
+    assert [i["videoUrl"][-11:] for i in items] == ["seedvideo02", "freshvideo1"]
     assert items[0]["origin"] == "saved"
 
 
-def test_matchup_fetches_additional_candidates_only_when_explicitly_requested(
+def test_search_result_count_is_capped(monkeypatch: pytest.MonkeyPatch) -> None:
+    many = [_candidate(f"manyvideo{n:02d}", "Aatrox", "Darius") for n in range(20)]
+    monkeypatch.setattr(matchups, "search_youtube_matchup_candidates", lambda *a, **k: many)
+
+    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
+
+    assert len(items) == matchups.MAX_VIDEOS_PER_MATCHUP
+
+
+def test_search_cache_lasts_72_hours_so_repeat_visits_do_not_spend_quota() -> None:
+    assert youtube_search.SEARCH_CACHE_TTL_SECONDS == 72 * 3600
+    assert youtube_search.SEARCH_CACHE_TTL_SECONDS >= 3 * 24 * 3600
+
+
+def test_include_candidates_flag_is_still_accepted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo03", "Singed", "TahmKench")])
@@ -548,12 +595,11 @@ def test_upvote_persists_youtube_candidate_to_database_and_toggles_vote(
     assert saved_item["upvoteCount"] == 1
     assert saved_item["upvotedByViewer"] is True
 
-    # 2. Subsequent matchup search must return the DB-saved video WITHOUT calling YouTube
-    def fail_if_youtube_called(*args, **kwargs):
-        raise AssertionError("YouTube must not be queried after candidate is saved to DB")
-
+    # 2. After saving, the search still runs; the saved video comes first and is not duplicated
     monkeypatch.setattr(
-        matchups, "search_youtube_matchup_candidates", fail_if_youtube_called
+        matchups,
+        "search_youtube_matchup_candidates",
+        lambda *a, **k: [candidate_payload, _candidate("otheraatrox", "Aatrox", "Darius")],
     )
 
     get_response = get(
@@ -561,9 +607,8 @@ def test_upvote_persists_youtube_candidate_to_database_and_toggles_vote(
     )
     assert get_response.status_code == 200
     items = get_response.json()["items"]
-    assert len(items) == 1
+    assert [i["origin"] for i in items] == ["saved", "youtube_search"]
     assert items[0]["id"] == "yt-aatrox-vs-darius-live123"
-    assert items[0]["origin"] == "saved"
     assert items[0]["upvoteCount"] == 1
     assert items[0]["upvotedByViewer"] is True
 
@@ -1355,11 +1400,11 @@ def _counts() -> tuple[int, int, int]:
         )
 
 
-def test_retention_defaults_to_28_days_and_never_exceeds_the_30_day_policy_limit(
+def test_retention_defaults_to_21_days_and_never_exceeds_the_30_day_policy_limit(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("YOUTUBE_DATA_RETENTION_DAYS", raising=False)
-    assert retention.retention_days() == 28
+    assert retention.retention_days() == 21
 
     monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "14")
     assert retention.retention_days() == 14
@@ -1370,7 +1415,7 @@ def test_retention_defaults_to_28_days_and_never_exceeds_the_30_day_policy_limit
     monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "0")
     assert retention.retention_days() == 1
     monkeypatch.setenv("YOUTUBE_DATA_RETENTION_DAYS", "not-a-number")
-    assert retention.retention_days() == 28
+    assert retention.retention_days() == 21
 
 
 def test_purge_deletes_only_expired_rows_together_with_votes_and_builds(
@@ -1378,8 +1423,8 @@ def test_purge_deletes_only_expired_rows_together_with_votes_and_builds(
 ) -> None:
     monkeypatch.delenv("YOUTUBE_DATA_RETENTION_DAYS", raising=False)
     _add_saved_video("freshvideo1", fetched_days_ago=1, votes=2)
-    _add_saved_video("edgefresh01", fetched_days_ago=27, votes=1)
-    _add_saved_video("edgestale01", fetched_days_ago=29, votes=3)
+    _add_saved_video("edgefresh01", fetched_days_ago=20, votes=1)
+    _add_saved_video("edgestale01", fetched_days_ago=22, votes=3)
     _add_saved_video("oldvideo001", fetched_days_ago=90, votes=1)
     assert _counts() == (4, 7, 4)
 
@@ -1407,7 +1452,7 @@ def test_purge_removes_rows_with_an_unreadable_date(monkeypatch: pytest.MonkeyPa
 def test_purge_handles_dates_written_with_different_utc_offsets() -> None:
     record_id = _add_saved_video("offsetvideo", fetched_days_ago=1)
     stale_jst = (
-        (datetime.now(timezone.utc) - timedelta(days=29)).astimezone(timezone(timedelta(hours=9)))
+        (datetime.now(timezone.utc) - timedelta(days=22)).astimezone(timezone(timedelta(hours=9)))
     ).isoformat(timespec="seconds")
     with Session(database.get_engine()) as session:
         session.get(MatchupVideoRecord, record_id).fetched_at = stale_jst
@@ -1441,3 +1486,129 @@ def test_new_rows_record_when_the_data_was_fetched(monkeypatch: pytest.MonkeyPat
         stamped = session.query(MatchupVideoRecord).one().fetched_at
     age = datetime.now(timezone.utc) - datetime.fromisoformat(stamped)
     assert abs(age) < timedelta(minutes=1)
+
+
+# --- manual notes: every extracted field is editable, waves are manual only ---
+
+
+def _manual_payload(**overrides) -> dict:
+    base = {
+        "analysisStatus": "manual_verified",
+        "runes": None,
+        "summonerSpells": ["SummonerFlash", "SummonerTeleport"],
+        "startingItems": ["1054"],
+        "timestamps": [],
+        "waves": [],
+        "firstWaveSeconds": None,
+    }
+    base.update(overrides)
+    return base
+
+
+def _save_manual(monkeypatch, video_id: str, metadata: dict):
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    video = {**VIDEO_PAYLOAD, "videoUrl": f"https://www.youtube.com/watch?v={video_id}"}
+    return video, put(
+        "/api/v1/matchups/Aatrox/Darius/metadata",
+        {"video": video, "metadata": metadata},
+        headers={"Authorization": "Bearer correct-token"},
+    )
+
+
+def test_wave_notes_and_first_wave_time_are_saved_and_read_back(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    waves = [
+        {"waveNumber": 2, "timeSeconds": 115, "state": "pull", "note": ""},
+        {"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": "first wave"},
+        {"waveNumber": 3, "timeSeconds": 145, "state": "unknown", "note": ""},
+    ]
+    video, response = _save_manual(
+        monkeypatch, "wavesvideo1", _manual_payload(waves=waves, firstWaveSeconds=85)
+    )
+    assert response.status_code == 200
+    assert [w["waveNumber"] for w in response.json()["waves"]] == [1, 2, 3], "sorted by wave"
+
+    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
+    saved = next(i for i in items if i["videoUrl"] == video["videoUrl"])
+    assert saved["metadata"]["firstWaveSeconds"] == 85
+    assert [(w["waveNumber"], w["state"]) for w in saved["metadata"]["waves"]] == [
+        (1, "push"),
+        (2, "pull"),
+        (3, "unknown"),
+    ]
+
+
+def test_wave_notes_reject_invalid_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    bad_cases = {
+        "unknown state": [{"waveNumber": 1, "timeSeconds": 85, "state": "winning", "note": ""}],
+        "wave number zero": [{"waveNumber": 0, "timeSeconds": 85, "state": "push", "note": ""}],
+        "negative time": [{"waveNumber": 1, "timeSeconds": -5, "state": "push", "note": ""}],
+        "note too long": [{"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": "x" * 500}],
+    }
+    for name, waves in bad_cases.items():
+        _, response = _save_manual(monkeypatch, "badwavevid1", _manual_payload(waves=waves))
+        assert response.status_code == 422, name
+
+    _, too_many = _save_manual(
+        monkeypatch,
+        "badwavevid2",
+        _manual_payload(
+            waves=[
+                {"waveNumber": 1 + n % 20, "timeSeconds": n, "state": "push", "note": ""}
+                for n in range(21)
+            ]
+        ),
+    )
+    assert too_many.status_code == 422
+
+
+def test_waves_are_never_filled_in_by_the_automatic_description_parser() -> None:
+    parsed = video_analysis.parse_youtube_description_metadata(
+        "Spells: Teleport Flash\nWave 1 pushed\nTimeline:\n0:00 Game Start\n03:02 First Blood\n"
+    )
+    assert parsed.waves == []
+    assert parsed.firstWaveSeconds is None
+
+
+def test_every_extracted_field_can_be_replaced_by_a_manual_save(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The auto-extracted values may be wrong or incomplete, so each can be overwritten."""
+    video = {**VIDEO_PAYLOAD, "videoUrl": "https://www.youtube.com/watch?v=overwritevi1"}
+    _offer_as_candidates(monkeypatch, video)
+    monkeypatch.setattr(
+        matchups,
+        "fetch_and_analyze_youtube_video",
+        lambda url: video_analysis.VideoMetadataAnalysis(
+            analysisStatus="auto_parsed",
+            summonerSpells=["SummonerHeal"],
+            startingItems=["1055"],
+            timestamps=[{"timeSeconds": 60, "timeLabel": "1:00", "label": "auto", "isKillEvent": False}],
+        ),
+    )
+    post(
+        "/api/v1/matchups/Aatrox/Darius/upvote",
+        {"voterToken": "voter-overwrite-12345", "video": video},
+    )
+
+    _, response = _save_manual(
+        monkeypatch,
+        "overwritevi1",
+        _manual_payload(
+            summonerSpells=["SummonerFlash", "SummonerIgnite"],
+            startingItems=["1056", "2003"],
+            timestamps=[{"timeSeconds": 185, "timeLabel": "3:05", "label": "mine", "isKillEvent": True}],
+            waves=[{"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": ""}],
+            firstWaveSeconds=85,
+        ),
+    )
+
+    assert response.status_code == 200
+    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
+    meta = next(i for i in items if i["videoUrl"].endswith("overwritevi1"))["metadata"]
+    assert meta["analysisStatus"] == "manual_verified"
+    assert meta["summonerSpells"] == ["SummonerFlash", "SummonerIgnite"]
+    assert meta["startingItems"] == ["1056", "2003"]
+    assert [t["label"] for t in meta["timestamps"]] == ["mine"]
+    assert meta["firstWaveSeconds"] == 85

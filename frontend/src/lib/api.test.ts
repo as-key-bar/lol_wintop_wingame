@@ -2,22 +2,39 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { formatIsoDate, getOrCreateVoterToken, getYouTubeEmbedUrl } from "./api";
 
 describe("getYouTubeEmbedUrl", () => {
-  it("builds an embed URL from a watch URL", () => {
-    expect(getYouTubeEmbedUrl("https://www.youtube.com/watch?v=abc123")).toBe(
-      "https://www.youtube.com/embed/abc123",
+  function parts(url: string | null) {
+    const parsed = new URL(url as string);
+    return { path: parsed.origin + parsed.pathname, params: parsed.searchParams };
+  }
+
+  it("builds an embed URL from a watch URL with the JS API enabled", () => {
+    const { path, params } = parts(
+      getYouTubeEmbedUrl("https://www.youtube.com/watch?v=abc123"),
     );
+
+    expect(path).toBe("https://www.youtube.com/embed/abc123");
+    expect(params.get("enablejsapi")).toBe("1");
+    expect(params.get("origin")).toBe(window.location.origin);
+    expect(params.has("start")).toBe(false);
+    expect(params.has("autoplay")).toBe(false);
   });
 
   it("adds a start offset and autoplay when seconds are given", () => {
-    expect(
+    const { params } = parts(
       getYouTubeEmbedUrl("https://www.youtube.com/watch?v=abc123", 95.9),
-    ).toBe("https://www.youtube.com/embed/abc123?start=95&autoplay=1");
+    );
+
+    expect(params.get("start")).toBe("95");
+    expect(params.get("autoplay")).toBe("1");
+    expect(params.get("enablejsapi")).toBe("1");
   });
 
   it("ignores a zero start offset", () => {
-    expect(
+    const { params } = parts(
       getYouTubeEmbedUrl("https://www.youtube.com/watch?v=abc123", 0),
-    ).toBe("https://www.youtube.com/embed/abc123");
+    );
+
+    expect(params.has("start")).toBe(false);
   });
 
   it("returns null when the URL has no video id or is invalid", () => {

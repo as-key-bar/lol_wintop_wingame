@@ -55,6 +55,8 @@ function metadata(
     summonerSpells: ["SummonerFlash"],
     startingItems: [],
     timestamps: [],
+    waves: [],
+    firstWaveSeconds: null,
     ...overrides,
   };
 }
@@ -182,5 +184,65 @@ describe("VideoMetadataPanel manual save", () => {
     );
     expect(window.sessionStorage.getItem("wintop_admin_token")).toBeNull();
     expect(screen.getByPlaceholderText("ADMIN_TOKEN")).toBeInTheDocument();
+  });
+});
+
+
+describe("VideoMetadataPanel wave notes and timeline", () => {
+  it("shows noted waves in the viewer and jumps to the chosen one", async () => {
+    const onJumpToTimestamp = vi.fn();
+    renderPanel({
+      onJumpToTimestamp,
+      metadata: metadata({
+        waves: [
+          { waveNumber: 1, timeSeconds: 85, state: "push", note: "" },
+          { waveNumber: 2, timeSeconds: 115, state: "pull", note: "frozen" },
+        ],
+        firstWaveSeconds: 85,
+      }),
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /ウェーブ2：frozen/ }));
+
+    expect(onJumpToTimestamp).toHaveBeenCalledWith(115);
+  });
+
+  it("says that waves are not read from the description when none are noted", () => {
+    renderPanel();
+
+    expect(screen.getByText(/ウェーブは未入力です/)).toBeInTheDocument();
+  });
+
+  it("saves waves, the first wave time and the edited timeline with the build", async () => {
+    const { onSaveManualMetadata } = renderPanel({
+      metadata: metadata({
+        timestamps: [{ timeSeconds: 60, timeLabel: "1:00", label: "auto", isKillEvent: false }],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "ビルドを手動編集" }));
+    await userEvent.type(screen.getByLabelText("最初のウェーブの時刻"), "1:25");
+    await userEvent.click(screen.getByRole("button", { name: "設定" }));
+    await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
+    await userEvent.click(screen.getByRole("button", { name: "1:00 を削除" }));
+    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
+    await userEvent.click(screen.getByRole("button", { name: "このビルド情報をDBに保存" }));
+
+    await waitFor(() => expect(onSaveManualMetadata).toHaveBeenCalledTimes(1));
+    const [saved] = onSaveManualMetadata.mock.calls[0];
+    expect(saved.firstWaveSeconds).toBe(85);
+    expect(saved.waves).toEqual([{ waveNumber: 1, timeSeconds: 85, state: "push", note: "" }]);
+    expect(saved.timestamps).toEqual([]);
+  });
+
+  it("tells the page when the editor opens and closes so the player can be controlled", async () => {
+    const onEditingChange = vi.fn();
+    renderPanel({ onEditingChange });
+
+    await userEvent.click(screen.getByRole("button", { name: "ビルドを手動編集" }));
+    expect(onEditingChange).toHaveBeenLastCalledWith(true);
+
+    await userEvent.click(screen.getByRole("button", { name: "編集を閉じる" }));
+    expect(onEditingChange).toHaveBeenLastCalledWith(false);
   });
 });

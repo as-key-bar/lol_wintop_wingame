@@ -1123,3 +1123,91 @@
 .creditSection ul {
   padding-left: 1.4em;
 }
+
+.timelineEditList {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.timelineEditRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.timelineTimeInput {
+  width: 72px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+}
+
+.timelineLabelInput {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+}
+
+.timelineKillToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+
+.waveStatus {
+  margin: 10px 0 6px;
+  font-weight: 700;
+}
+
+.waveButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.waveButton {
+  padding: 12px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.waveButton kbd {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 0.75rem;
+}
+
+.waveButtonPush {
+  background: #1f6f4a;
+}
+
+.waveButtonPull {
+  background: #8a2f3b;
+}
+
+.waveButtonNeutral {
+  background: #4a5568;
+}
+
+.waveButtonUnknown {
+  background: #2d3748;
+}
