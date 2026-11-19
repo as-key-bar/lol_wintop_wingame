@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { RiotFooter } from "@/components/RiotFooter";
 import { VideoMetadataPanel } from "@/components/VideoMetadataPanel";
+import { WaveStrip } from "@/components/WaveStrip";
 import {
   apiBaseUrl,
   formatIsoDate,
@@ -13,10 +14,12 @@ import {
   getYouTubeEmbedUrl,
   type Champion,
   type ChampionResponse,
+  type BuildSavePayload,
   type GameAssetsCatalog,
   type MatchupResponse,
   type MatchupVideo,
   type VideoMetadataAnalysis,
+  type WaveNote,
 } from "@/lib/api";
 import { useYouTubePlayer } from "@/lib/youtubePlayer";
 import styles from "@/app/page.module.css";
@@ -59,12 +62,16 @@ function MatchupContent() {
   const [upvotingVideoId, setUpvotingVideoId] = useState<string | null>(null);
   const [analyzingVideoId, setAnalyzingVideoId] = useState<string | null>(null);
   const [savingMetadata, setSavingMetadata] = useState(false);
+  const [savingWaves, setSavingWaves] = useState(false);
   const [error, setError] = useState("");
   const [playerFrame, setPlayerFrame] = useState<HTMLIFrameElement | null>(null);
-  const [wavesEditing, setWavesEditing] = useState(false);
-  // The player API is only loaded while a manual editor is open, so ordinary viewing
+  const [buildEditing, setBuildEditing] = useState(false);
+  const [waveEditing, setWaveEditing] = useState(false);
+  // The player API is only loaded while one of the manual editors is open, so ordinary viewing
   // never pulls in the extra script.
-  const player = useYouTubePlayer(wavesEditing ? playerFrame : null);
+  const player = useYouTubePlayer(
+    buildEditing || waveEditing ? playerFrame : null,
+  );
 
   useEffect(() => {
     if (!playerChampionId || !opponentChampionId) {
@@ -220,7 +227,7 @@ function MatchupContent() {
 
   async function handleSaveManualMetadata(
     video: MatchupVideo,
-    metadata: VideoMetadataAnalysis,
+    metadata: BuildSavePayload,
     adminToken: string,
   ) {
     if (!playerChampionId || !opponentChampionId || savingMetadata) {
@@ -261,6 +268,64 @@ function MatchupContent() {
       );
     } finally {
       setSavingMetadata(false);
+    }
+  }
+
+  async function handleSaveWaves(
+    video: MatchupVideo,
+    waves: WaveNote[],
+    firstWaveSeconds: number | null,
+    adminToken: string,
+  ) {
+    if (!playerChampionId || !opponentChampionId || savingWaves) {
+      return;
+    }
+    setSavingWaves(true);
+    try {
+      const saveUrl = new URL(
+        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/waves`,
+        apiBaseUrl,
+      );
+      const response = await fetch(saveUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ video, waves, firstWaveSeconds }),
+      });
+      if (response.status === 401) {
+        throw new Error("管理者トークンが正しくありません。");
+      }
+      if (response.status === 403) {
+        throw new Error(
+          "サーバーで管理者機能が無効です（ADMIN_TOKEN が未設定です）。",
+        );
+      }
+      if (response.status === 429) {
+        throw new Error("操作が多すぎます。少し待ってからやり直してください。");
+      }
+      if (!response.ok) {
+        throw new Error("ウェーブ情報の保存に失敗しました。");
+      }
+      const saved = (await response.json()) as VideoMetadataAnalysis;
+      setMatchupVideos((previous) =>
+        previous.map((item) =>
+          item.id === video.id
+            ? {
+                ...item,
+                origin: "saved",
+                metadata: {
+                  ...(item.metadata ?? saved),
+                  waves: saved.waves,
+                  firstWaveSeconds: saved.firstWaveSeconds,
+                },
+              }
+            : item,
+        ),
+      );
+    } finally {
+      setSavingWaves(false);
     }
   }
 
@@ -595,6 +660,24 @@ function MatchupContent() {
                 </div>
               </div>
 
+              <WaveStrip
+                key={activeVideo.id}
+                waves={activeVideo.metadata?.waves ?? []}
+                firstWaveSeconds={activeVideo.metadata?.firstWaveSeconds ?? null}
+                saving={savingWaves}
+                onSave={(waves, first, adminToken) =>
+                  handleSaveWaves(activeVideo, waves, first, adminToken)
+                }
+                playerReady={player.ready}
+                currentTime={player.currentTime}
+                seekAndPause={player.seekAndPause}
+                onEditingChange={setWaveEditing}
+                onJumpToTimestamp={(seconds) => {
+                  setPlaybackStartSeconds(seconds);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
+
               <VideoMetadataPanel
                 metadata={activeVideo.metadata}
                 gameAssets={gameAssets}
@@ -608,8 +691,7 @@ function MatchupContent() {
                 }
                 playerReady={player.ready}
                 currentTime={player.currentTime}
-                seekAndPause={player.seekAndPause}
-                onEditingChange={setWavesEditing}
+                onEditingChange={setBuildEditing}
                 onJumpToTimestamp={(seconds) => {
                   setPlaybackStartSeconds(seconds);
                   window.scrollTo({ top: 0, behavior: "smooth" });

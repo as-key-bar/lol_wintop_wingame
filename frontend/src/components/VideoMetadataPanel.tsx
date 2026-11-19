@@ -4,15 +4,14 @@ import Image from "next/image";
 import { useState } from "react";
 import styles from "@/app/page.module.css";
 import { TimelineEditor } from "@/components/TimelineEditor";
-import { WaveTagger } from "@/components/WaveTagger";
+import { readStoredAdminToken, storeAdminToken } from "@/lib/adminToken";
 import {
   type GameAssetsCatalog,
   type RuneSelection,
+  type BuildSavePayload,
   type VideoMetadataAnalysis,
   type VideoTimestamp,
-  type WaveNote,
 } from "@/lib/api";
-import { WAVE_STATE_LABEL, formatClock } from "@/lib/waves";
 
 type VideoMetadataPanelProps = {
   metadata: VideoMetadataAnalysis | null | undefined;
@@ -21,35 +20,16 @@ type VideoMetadataPanelProps = {
   savingManual: boolean;
   onAnalyzeDescription: (refresh: boolean) => void;
   onSaveManualMetadata: (
-    updated: VideoMetadataAnalysis,
+    updated: BuildSavePayload,
     adminToken: string,
   ) => Promise<void>;
   onJumpToTimestamp: (seconds: number) => void;
-  // Player controls for wave tagging; absent when the video cannot be controlled.
+  // Reads the current playback position, when the player is controllable (timeline editor).
   playerReady?: boolean;
   currentTime?: () => number | null;
-  seekAndPause?: (seconds: number) => void;
   // Called when the editor opens or closes so the page can make the player controllable.
   onEditingChange?: (editing: boolean) => void;
 };
-
-const ADMIN_TOKEN_STORAGE_KEY = "wintop_admin_token";
-
-function readStoredAdminToken(): string {
-  try {
-    return window.sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function storeAdminToken(token: string) {
-  try {
-    window.sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-  } catch {
-    // sessionStorage may be unavailable; the token is simply not remembered.
-  }
-}
 
 export function VideoMetadataPanel({
   metadata,
@@ -61,7 +41,6 @@ export function VideoMetadataPanel({
   onJumpToTimestamp,
   playerReady = false,
   currentTime = () => null,
-  seekAndPause = () => undefined,
   onEditingChange,
 }: VideoMetadataPanelProps) {
   const [editing, setEditing] = useState(false);
@@ -79,8 +58,6 @@ export function VideoMetadataPanel({
   const [draftSpells, setDraftSpells] = useState<string[]>([]);
   const [draftItems, setDraftItems] = useState<string[]>([]);
   const [draftTimestamps, setDraftTimestamps] = useState<VideoTimestamp[]>([]);
-  const [draftWaves, setDraftWaves] = useState<WaveNote[]>([]);
-  const [draftFirstWave, setDraftFirstWave] = useState<number | null>(null);
   const [adminToken, setAdminToken] = useState(readStoredAdminToken);
   const [saveError, setSaveError] = useState("");
 
@@ -105,8 +82,6 @@ export function VideoMetadataPanel({
     setDraftSpells(metadata?.summonerSpells ?? []);
     setDraftItems(metadata?.startingItems ?? []);
     setDraftTimestamps(metadata?.timestamps ?? []);
-    setDraftWaves(metadata?.waves ?? []);
-    setDraftFirstWave(metadata?.firstWaveSeconds ?? null);
     setEditing(true);
     onEditingChange?.(true);
   }
@@ -205,8 +180,6 @@ export function VideoMetadataPanel({
           summonerSpells: draftSpells,
           startingItems: draftItems,
           timestamps: draftTimestamps,
-          waves: draftWaves,
-          firstWaveSeconds: draftFirstWave,
         },
         token,
       );
@@ -519,18 +492,6 @@ export function VideoMetadataPanel({
             currentTime={playerReady ? currentTime : undefined}
           />
 
-          <WaveTagger
-            waves={draftWaves}
-            firstWaveSeconds={draftFirstWave}
-            onChange={(waves, first) => {
-              setDraftWaves(waves);
-              setDraftFirstWave(first);
-            }}
-            playerReady={playerReady}
-            currentTime={currentTime}
-            seekAndPause={seekAndPause}
-          />
-
           <div className={styles.editorSection}>
             <h4>管理者トークン</h4>
             <input
@@ -820,39 +781,6 @@ export function VideoMetadataPanel({
             ) : (
               <p className={styles.emptyAnalysisNote}>
                 タイムスタンプ情報は未抽出です。「概要欄から自動取得」を押すと動画概要欄のチャプター・キル時間を抽出します。
-              </p>
-            )}
-          </div>
-
-          <div className={styles.analysisCard}>
-            <h4 className={styles.analysisCardHeading}>
-              ウェーブのプッシュ・プル（手動入力・クリックで再生位置ジャンプ）
-            </h4>
-            {(metadata?.waves ?? []).length > 0 ? (
-              <div className={styles.timelineList}>
-                {(metadata?.waves ?? []).map((wave) => (
-                  <button
-                    key={wave.waveNumber}
-                    type="button"
-                    className={styles.timestampChip}
-                    onClick={() => onJumpToTimestamp(wave.timeSeconds)}
-                  >
-                    <span className={styles.timestampTime}>
-                      ▶ {formatClock(wave.timeSeconds)}
-                    </span>
-                    <span className={styles.killTag}>
-                      {WAVE_STATE_LABEL[wave.state]}
-                    </span>
-                    <span className={styles.timestampLabel}>
-                      ウェーブ{wave.waveNumber}
-                      {wave.note ? `：${wave.note}` : ""}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className={styles.emptyAnalysisNote}>
-                ウェーブは未入力です。概要欄からは取得できないため、「ビルドを手動編集」から、動画を見ながら入力します。
               </p>
             )}
           </div>

@@ -1,0 +1,323 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import styles from "@/app/page.module.css";
+import { readStoredAdminToken, storeAdminToken } from "@/lib/adminToken";
+import type { WaveNote, WaveState } from "@/lib/api";
+import {
+  MAX_WAVES,
+  WAVE_INTERVAL_SECONDS,
+  WAVE_STATE_LABEL,
+  formatClock,
+  nextWaveNumber,
+  parseClock,
+  recordWave,
+  removeWave,
+  retimeWaves,
+  waveChipLabel,
+  waveTime,
+} from "@/lib/waves";
+
+type WaveStripProps = {
+  waves: WaveNote[];
+  firstWaveSeconds: number | null;
+  // Saves the wave list on its own, with the admin token. Rejects with an Error whose message is
+  // shown to the user. The strip never saves the build (runes, spells, items, timeline).
+  onSave: (
+    waves: WaveNote[],
+    firstWaveSeconds: number | null,
+    adminToken: string,
+  ) => Promise<void>;
+  saving: boolean;
+  onJumpToTimestamp: (seconds: number) => void;
+  playerReady: boolean;
+  currentTime: () => number | null;
+  seekAndPause: (seconds: number) => void;
+  // Lets the page load the player API only while the strip is being edited.
+  onEditingChange?: (editing: boolean) => void;
+};
+
+const BUTTONS: { state: WaveState; key: string; className: string }[] = [
+  { state: "push", key: "1", className: styles.waveButtonPush },
+  { state: "pull", key: "2", className: styles.waveButtonPull },
+  { state: "neutral", key: "3", className: styles.waveButtonNeutral },
+  { state: "unknown", key: "4", className: styles.waveButtonUnknown },
+];
+
+// A horizontal strip under the video information: "ウェーブ管理  1：プッシュ  2：プッシュ  3：プル".
+// "編集" at the right end swaps the strip, in place, for the input controls. In the input mode a
+// wave is recorded with one button, which also seeks ahead by one wave interval and pauses.
+// A recorded wave can only be deleted, not edited: to correct one, delete it and record it again.
+export function WaveStrip({
+  waves,
+  firstWaveSeconds,
+  onSave,
+  saving,
+  onJumpToTimestamp,
+  playerReady,
+  currentTime,
+  seekAndPause,
+  onEditingChange,
+}: WaveStripProps) {
+  const [editing, setEditing] = useState(false);
+  const [draftWaves, setDraftWaves] = useState<WaveNote[]>(waves);
+  const [draftFirst, setDraftFirst] = useState<number | null>(firstWaveSeconds);
+  const [timeText, setTimeText] = useState("");
+  const [targetWave, setTargetWave] = useState(1);
+  const [token, setToken] = useState(readStoredAdminToken);
+  const [error, setError] = useState("");
+
+  const waveNumber = Math.min(targetWave, MAX_WAVES);
+
+  function open() {
+    setDraftWaves(waves);
+    setDraftFirst(firstWaveSeconds);
+    setTimeText(firstWaveSeconds === null ? "" : formatClock(firstWaveSeconds));
+    setTargetWave(nextWaveNumber(waves));
+    setError("");
+    setEditing(true);
+    onEditingChange?.(true);
+  }
+
+  function close() {
+    setEditing(false);
+    onEditingChange?.(false);
+  }
+
+  function setFirstWave(seconds: number) {
+    setError("");
+    setTimeText(formatClock(seconds));
+    setDraftFirst(seconds);
+    setDraftWaves((previous) => retimeWaves(previous, seconds));
+    seekAndPause(seconds);
+  }
+
+  function applyTypedTime() {
+    const seconds = parseClock(timeText);
+    if (seconds === null) {
+      setError("時刻は「1:25」または秒数で入力してください。");
+      return;
+    }
+    setFirstWave(seconds);
+  }
+
+  function useCurrentTime() {
+    const seconds = currentTime();
+    if (seconds === null) {
+      setError("プレーヤーの準備ができていません。時刻を直接入力してください。");
+      return;
+    }
+    setFirstWave(seconds);
+  }
+
+  function record(state: WaveState) {
+    if (draftFirst === null) {
+      setError("先に、最初のウェーブが来る時刻を設定してください。");
+      return;
+    }
+    setError("");
+    setDraftWaves((previous) => recordWave(previous, draftFirst, waveNumber, state));
+    const following = Math.min(waveNumber + 1, MAX_WAVES);
+    setTargetWave(following);
+    seekAndPause(waveTime(draftFirst, following));
+  }
+
+  function remove(number: number) {
+    setDraftWaves((previous) => {
+      const next = removeWave(previous, number);
+      setTargetWave(number);
+      return next;
+    });
+  }
+
+  async function save() {
+    const trimmed = token.trim();
+    if (!trimmed) {
+      setError("管理者トークンを入力してください。");
+      return;
+    }
+    setError("");
+    try {
+      await onSave(draftWaves, draftFirst, trimmed);
+      storeAdminToken(trimmed);
+      close();
+    } catch (failure) {
+      setError(
+        failure instanceof Error ? failure.message : "ウェーブ情報の保存に失敗しました。",
+      );
+    }
+  }
+
+  useEffect(() => {
+    if (!editing) {
+      return undefined;
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const match = BUTTONS.find((button) => button.key === event.key);
+      if (match) {
+        event.preventDefault();
+        record(match.state);
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
+  const current = draftWaves.find((wave) => wave.waveNumber === waveNumber);
+
+  if (!editing) {
+    return (
+      <section className={styles.waveStrip} aria-label="ウェーブ管理">
+        <h4 className={styles.waveStripTitle}>ウェーブ管理</h4>
+        <div className={styles.waveStripChips}>
+          {waves.length > 0 ? (
+            waves.map((wave) => (
+              <button
+                key={wave.waveNumber}
+                type="button"
+                className={`${styles.waveChip} ${styles[`waveChip_${wave.state}`]}`}
+                title={`${formatClock(wave.timeSeconds)} へ移動`}
+                onClick={() => onJumpToTimestamp(wave.timeSeconds)}
+              >
+                {waveChipLabel(wave)}
+              </button>
+            ))
+          ) : (
+            <span className={styles.emptyInlineNote}>未入力</span>
+          )}
+        </div>
+        <button type="button" className={styles.loadCandidatesButton} onClick={open}>
+          編集
+        </button>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className={`${styles.waveStrip} ${styles.waveStripEditing}`}
+      aria-label="ウェーブ管理（編集）"
+    >
+      <div className={styles.waveStripEditHeader}>
+        <h4 className={styles.waveStripTitle}>ウェーブ管理（編集）</h4>
+        <button type="button" className={styles.loadCandidatesButton} onClick={close}>
+          閉じる
+        </button>
+      </div>
+
+      <p className={styles.emptyAnalysisNote}>
+        ウェーブは概要欄から取得できないため、動画を見ながら入力します。ボタンを押すと記録し、
+        {WAVE_INTERVAL_SECONDS}秒先へ送って一時停止します。向きは、この動画の「自分側」のチャンピオンから見たものです。
+        間違えたときは、そのウェーブを削除して、入力し直してください。
+      </p>
+
+      <div className={styles.waveStripRow}>
+        <label htmlFor="first-wave-time">最初のウェーブの時刻</label>
+        <input
+          id="first-wave-time"
+          className={styles.timelineTimeInput}
+          placeholder="1:25"
+          value={timeText}
+          onChange={(event) => setTimeText(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              applyTypedTime();
+            }
+          }}
+        />
+        <button type="button" className={styles.loadCandidatesButton} onClick={applyTypedTime}>
+          設定
+        </button>
+        <button
+          type="button"
+          className={styles.loadCandidatesButton}
+          disabled={!playerReady}
+          title={playerReady ? undefined : "プレーヤーの準備中です"}
+          onClick={useCurrentTime}
+        >
+          今の再生位置にする
+        </button>
+      </div>
+
+      {draftFirst !== null && (
+        <>
+          <p className={styles.waveStatus} aria-live="polite">
+            ウェーブ {waveNumber}（{formatClock(waveTime(draftFirst, waveNumber))}）：
+            {current ? `記録済み＝${WAVE_STATE_LABEL[current.state]}` : "まだ記録していません"}
+          </p>
+          <div className={styles.waveButtons}>
+            {BUTTONS.map((button) => (
+              <button
+                key={button.state}
+                type="button"
+                className={`${styles.waveButton} ${button.className}`}
+                onClick={() => record(button.state)}
+              >
+                {WAVE_STATE_LABEL[button.state]}
+                <kbd>{button.key}</kbd>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {draftWaves.length > 0 && (
+        <ul className={styles.waveStripDeleteList}>
+          {draftWaves.map((wave) => (
+            <li key={wave.waveNumber} className={styles.waveStripDeleteItem}>
+              <span className={`${styles.waveChip} ${styles[`waveChip_${wave.state}`]}`}>
+                {waveChipLabel(wave)}
+              </span>
+              <button
+                type="button"
+                className={styles.loadCandidatesButton}
+                aria-label={`ウェーブ${wave.waveNumber}を削除`}
+                onClick={() => remove(wave.waveNumber)}
+              >
+                削除
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className={styles.waveStripRow}>
+        <label htmlFor="wave-admin-token">管理者トークン</label>
+        <input
+          id="wave-admin-token"
+          type="password"
+          className={styles.adminTokenInput}
+          value={token}
+          autoComplete="off"
+          placeholder="ADMIN_TOKEN"
+          onChange={(event) => setToken(event.target.value)}
+        />
+        <button
+          type="button"
+          className={styles.upvoteButtonActive}
+          style={{ padding: "8px 16px", borderRadius: "8px", fontWeight: 700 }}
+          disabled={saving}
+          onClick={save}
+        >
+          {saving ? "保存中..." : "ウェーブを保存"}
+        </button>
+      </div>
+
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}

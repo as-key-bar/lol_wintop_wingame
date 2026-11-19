@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { WaveNote } from "./api";
 import {
+  waveChipLabel,
   formatClock,
   nextWaveNumber,
   parseClock,
@@ -10,11 +11,10 @@ import {
   waveTime,
 } from "./waves";
 
-const note = (waveNumber: number, state: WaveNote["state"], text = ""): WaveNote => ({
+const note = (waveNumber: number, state: WaveNote["state"]): WaveNote => ({
   waveNumber,
   timeSeconds: 0,
   state,
-  note: text,
 });
 
 describe("waveTime", () => {
@@ -53,11 +53,10 @@ describe("recordWave", () => {
     ]);
   });
 
-  it("replaces an earlier note for the same wave and keeps its text", () => {
-    const waves = recordWave([note(1, "push", "frozen")], 85, 1, "pull");
+  it("replaces an earlier note for the same wave", () => {
+    const waves = recordWave([note(1, "push")], 85, 1, "pull");
 
-    expect(waves).toHaveLength(1);
-    expect(waves[0]).toMatchObject({ state: "pull", note: "frozen" });
+    expect(waves).toEqual([{ waveNumber: 1, timeSeconds: 85, state: "pull" }]);
   });
 });
 
@@ -77,5 +76,13 @@ describe("removeWave and retimeWaves", () => {
   it("moves every wave when the first-wave time changes", () => {
     const moved = retimeWaves([note(1, "push"), note(2, "pull")], 90);
     expect(moved.map((w) => w.timeSeconds)).toEqual([90, 120]);
+  });
+});
+
+describe("waveChipLabel", () => {
+  it("shows the wave number and its state", () => {
+    expect(waveChipLabel({ waveNumber: 1, state: "push" })).toBe("1：プッシュ");
+    expect(waveChipLabel({ waveNumber: 3, state: "pull" })).toBe("3：プル");
+    expect(waveChipLabel({ waveNumber: 4, state: "unknown" })).toBe("4：不明");
   });
 });

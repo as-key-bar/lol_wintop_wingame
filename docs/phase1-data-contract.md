@@ -168,10 +168,10 @@ Data Dragonを出典とし、チャンピオンの識別には表示名ではな
 | `summonerSpells` | string[] | サモナースペルのID（例: `SummonerFlash`）。最大2つ |
 | `startingItems` | string[] | スタートアイテムのID。概要欄に `Starter Items:` 行がある場合、または手動登録の場合のみ。試合終了時の `Build:` 行からの推定は行わない（仕様書 4.4） |
 | `timestamps` | object[] | `timeSeconds`、`timeLabel`、`label`、`isKillEvent`。最大300件。手動で追加・変更・削除できる |
-| `waves` | object[] | ウェーブのプッシュ・プル。**手動入力のみ**（概要欄からは取得しない）。`waveNumber`（1〜20）、`timeSeconds`、`state`（`push` / `pull` / `neutral` / `unknown`）、`note`（200文字まで）。向きは、この動画の「自分側」のチャンピオンから見たもの。最大20件。未入力は「まだ入力していない」ことを表し、「中立」ではない |
+| `waves` | object[] | ウェーブのプッシュ・プル。**手動入力のみ**（概要欄からは取得しない）。`waveNumber`（1〜20）、`timeSeconds`、`state`（`push` / `pull` / `neutral` / `unknown`）、（メモ欄は無い）。向きは、この動画の「自分側」のチャンピオンから見たもの。最大20件。未入力は「まだ入力していない」ことを表し、「中立」ではない |
 | `firstWaveSeconds` | integer \| null | 最初のウェーブが来る時刻（秒）。以降のウェーブは30秒間隔 |
 
-手動保存（`PUT /metadata`）では、全項目を上書きできる。自動取得した値に誤りや不足があり得るため。
+手動保存（`PUT /metadata`）では、ルーン・スペル・スタートアイテム・タイムラインを上書きできる。自動取得した値に誤りや不足があり得るため。**ウェーブは含めず、保存しても変わらない**（下の `PUT /waves` で、独立して保存する）。
 
 ### `GET /api/v1/game-assets`
 
@@ -191,6 +191,16 @@ Data Dragonを出典とし、チャンピオンの識別には表示名ではな
 
 - **管理者限定**: `Authorization: Bearer <ADMIN_TOKEN>` が必要。サーバーに環境変数 `ADMIN_TOKEN` が未設定なら `403`（`admin_disabled`）、トークンが違えば `401`（`invalid_admin_token`）。
 - 画面の手動編集では、トークンを入力して保存する（トークンはそのブラウザセッションのみ保持）。
+
+### `PUT /api/v1/matchups/{p}/{o}/waves`
+
+リクエスト: `{ "video": <MatchupVideo>, "waves": WaveNote[], "firstWaveSeconds": integer | null }`。ウェーブのプッシュ・プルと、最初のウェーブの時刻**だけ**を保存する。ルーン・スペル・スタートアイテム・タイムラインには触れない。送った `waves` の一覧で、保存済みの一覧を**置き換える**（一覧から外したウェーブは削除される）。
+
+- **管理者限定**: `PUT /metadata` と同じ（`Authorization: Bearer <ADMIN_TOKEN>`。未設定なら `403`、違えば `401`）。
+- 同じウェーブ番号を2つ含めると `400`。値が範囲外なら `422`。
+- 保存済みでない動画は、サーバーの検索が提示した動画に限り、行として作る（それ以外は `400`、`invalid_waves`）。
+- レスポンスは、保存後の `metadata` 全体（ビルドの値を含む）。
+- 画面では、記録したウェーブの状態は**後から変更できず、削除のみ**（間違えたら、削除して入力し直す）。
 
 ## 未決事項
 

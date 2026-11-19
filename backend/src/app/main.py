@@ -19,10 +19,11 @@ from app.matchups import (
     analyze_matchup_video_metadata,
     get_matchup_videos,
     save_manual_video_metadata,
+    save_video_waves,
     toggle_matchup_video_upvote,
 )
 from app.rate_limit import rate_limit
-from app.video_analysis import VideoMetadataAnalysis, load_game_assets
+from app.video_analysis import VideoMetadataAnalysis, WaveNote, load_game_assets
 
 load_dotenv()
 
@@ -115,6 +116,12 @@ class AnalyzeMetadataRequest(BaseModel):
 class SaveMetadataRequest(BaseModel):
     video: MatchupVideo
     metadata: VideoMetadataAnalysis
+
+
+class SaveWavesRequest(BaseModel):
+    video: MatchupVideo
+    waves: list[WaveNote] = Field(default_factory=list, max_length=20)
+    firstWaveSeconds: int | None = Field(default=None, ge=0, le=3600)
 
 
 @app.get("/api/health")
@@ -330,6 +337,48 @@ def put_matchup_video_metadata(
             detail={
                 "code": "metadata_unavailable",
                 "message": "ビルド情報の保存に失敗しました。",
+            },
+        ) from error
+
+
+@app.put(
+    "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/waves",
+    response_model=VideoMetadataAnalysis,
+    dependencies=[Depends(rate_limit("waves-write", 60, 60)), Depends(require_admin_token)],
+)
+def put_matchup_video_waves(
+    playerChampionId: str,
+    opponentChampionId: str,
+    body: SaveWavesRequest,
+) -> VideoMetadataAnalysis:
+    try:
+        return save_video_waves(
+            player_champion_id=playerChampionId,
+            opponent_champion_id=opponentChampionId,
+            video=body.video,
+            waves=body.waves,
+            first_wave_seconds=body.firstWaveSeconds,
+        )
+    except UnknownChampionError as error:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "unknown_champion",
+                "message": "指定されたチャンピオンが見つかりません。",
+            },
+        ) from error
+    except InvalidUpvoteError as error:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "invalid_waves", "message": str(error)},
+        ) from error
+    except RuntimeError as error:
+        logger.exception("Saving wave notes failed")
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "waves_unavailable",
+                "message": "ウェーブ情報の保存に失敗しました。",
             },
         ) from error
 

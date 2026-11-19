@@ -8,7 +8,7 @@ from typing import Any, Literal
 from urllib.parse import parse_qs, urlencode, urlparse
 from urllib.request import Request, urlopen
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 GAME_ASSETS_PATH = Path(__file__).parent / "data" / "game_assets.json"
@@ -41,13 +41,15 @@ class WaveNote(BaseModel):
     """One minion wave as noted by hand. Waves cannot be read from a description, so they
     are always manual; a missing note means "not noted yet", never "neutral"."""
 
+    # Rows stored before the memo field was removed may still carry "note"; it is ignored.
+    model_config = ConfigDict(extra="ignore")
+
     waveNumber: int = Field(ge=1, le=20)
     timeSeconds: int = Field(ge=0, le=86400)
     # push/pull describe where the wave went relative to the video's player (the champion
     # selected as "me"); neutral means it stayed near the middle; unknown means the noter
     # could not tell.
     state: Literal["push", "pull", "neutral", "unknown"]
-    note: str = Field(default="", max_length=200)
 
 
 class VideoMetadataAnalysis(BaseModel):

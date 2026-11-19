@@ -13,6 +13,11 @@ export const WAVE_STATE_LABEL: Record<WaveState, string> = {
   unknown: "不明",
 };
 
+// "1：プッシュ" — the label of one wave in the strip.
+export function waveChipLabel(wave: { waveNumber: number; state: WaveState }): string {
+  return `${wave.waveNumber}：${WAVE_STATE_LABEL[wave.state]}`;
+}
+
 export function waveTime(firstWaveSeconds: number, waveNumber: number): number {
   return firstWaveSeconds + (waveNumber - 1) * WAVE_INTERVAL_SECONDS;
 }
@@ -55,7 +60,6 @@ export function recordWave(
     waveNumber,
     timeSeconds: waveTime(firstWaveSeconds, waveNumber),
     state,
-    note: waves.find((wave) => wave.waveNumber === waveNumber)?.note ?? "",
   };
   return [...waves.filter((wave) => wave.waveNumber !== waveNumber), next].sort(
     (a, b) => a.waveNumber - b.waveNumber,

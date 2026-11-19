@@ -1488,7 +1488,9 @@ def test_new_rows_record_when_the_data_was_fetched(monkeypatch: pytest.MonkeyPat
     assert abs(age) < timedelta(minutes=1)
 
 
-# --- manual notes: every extracted field is editable, waves are manual only ---
+# --- manual input: every extracted field is editable; waves are manual only, with their own save ---
+
+AUTH = {"Authorization": "Bearer correct-token"}
 
 
 def _manual_payload(**overrides) -> dict:
@@ -1498,69 +1500,158 @@ def _manual_payload(**overrides) -> dict:
         "summonerSpells": ["SummonerFlash", "SummonerTeleport"],
         "startingItems": ["1054"],
         "timestamps": [],
-        "waves": [],
-        "firstWaveSeconds": None,
     }
     base.update(overrides)
     return base
 
 
-def _save_manual(monkeypatch, video_id: str, metadata: dict):
+def _video(video_id: str) -> dict:
+    return {**VIDEO_PAYLOAD, "videoUrl": f"https://www.youtube.com/watch?v={video_id}"}
+
+
+def _save_build(monkeypatch, video_id: str, metadata: dict):
     monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
-    video = {**VIDEO_PAYLOAD, "videoUrl": f"https://www.youtube.com/watch?v={video_id}"}
+    video = _video(video_id)
     return video, put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         {"video": video, "metadata": metadata},
-        headers={"Authorization": "Bearer correct-token"},
+        headers=AUTH,
     )
 
 
-def test_wave_notes_and_first_wave_time_are_saved_and_read_back(
+def _save_waves(monkeypatch, video: dict, waves: list, first: int | None, headers=AUTH):
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    _offer_as_candidates(monkeypatch, video)
+    return put(
+        "/api/v1/matchups/Aatrox/Darius/waves",
+        {"video": video, "waves": waves, "firstWaveSeconds": first},
+        headers=headers,
+    )
+
+
+def _wave(number: int, seconds: int, state: str = "push") -> dict:
+    return {"waveNumber": number, "timeSeconds": seconds, "state": state}
+
+
+def _stored_metadata(video: dict) -> dict:
+    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
+    return next(i for i in items if i["videoUrl"] == video["videoUrl"])["metadata"]
+
+
+def test_waves_have_their_own_save_that_needs_the_admin_token(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    waves = [
-        {"waveNumber": 2, "timeSeconds": 115, "state": "pull", "note": ""},
-        {"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": "first wave"},
-        {"waveNumber": 3, "timeSeconds": 145, "state": "unknown", "note": ""},
-    ]
-    video, response = _save_manual(
-        monkeypatch, "wavesvideo1", _manual_payload(waves=waves, firstWaveSeconds=85)
-    )
-    assert response.status_code == 200
-    assert [w["waveNumber"] for w in response.json()["waves"]] == [1, 2, 3], "sorted by wave"
+    video = _video("wavesauth01")
+    body = {"video": video, "waves": [_wave(1, 85)], "firstWaveSeconds": 85}
 
-    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
-    saved = next(i for i in items if i["videoUrl"] == video["videoUrl"])
-    assert saved["metadata"]["firstWaveSeconds"] == 85
-    assert [(w["waveNumber"], w["state"]) for w in saved["metadata"]["waves"]] == [
+    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    assert put("/api/v1/matchups/Aatrox/Darius/waves", body).status_code == 403
+
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    assert put("/api/v1/matchups/Aatrox/Darius/waves", body).status_code == 401
+    assert (
+        put(
+            "/api/v1/matchups/Aatrox/Darius/waves",
+            body,
+            headers={"Authorization": "Bearer wrong-token"},
+        ).status_code
+        == 401
+    )
+    assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
+
+
+def test_waves_are_saved_sorted_and_read_back(monkeypatch: pytest.MonkeyPatch) -> None:
+    video = _video("wavessaved01")
+    response = _save_waves(
+        monkeypatch,
+        video,
+        [_wave(3, 145, "unknown"), _wave(1, 85, "push"), _wave(2, 115, "pull")],
+        85,
+    )
+
+    assert response.status_code == 200
+    assert [w["waveNumber"] for w in response.json()["waves"]] == [1, 2, 3]
+    stored = _stored_metadata(video)
+    assert stored["firstWaveSeconds"] == 85
+    assert [(w["waveNumber"], w["state"]) for w in stored["waves"]] == [
         (1, "push"),
         (2, "pull"),
         (3, "unknown"),
     ]
+    assert all("note" not in w for w in stored["waves"]), "the memo field no longer exists"
 
 
-def test_wave_notes_reject_invalid_values(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_saving_waves_does_not_touch_the_build_and_saving_the_build_does_not_touch_waves(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    video, build = _save_build(
+        monkeypatch,
+        "independent01",
+        _manual_payload(summonerSpells=["SummonerFlash", "SummonerIgnite"], startingItems=["1056"]),
+    )
+    assert build.status_code == 200
+
+    _save_waves(monkeypatch, video, [_wave(1, 85), _wave(2, 115, "pull")], 85)
+    after_waves = _stored_metadata(video)
+    assert after_waves["summonerSpells"] == ["SummonerFlash", "SummonerIgnite"]
+    assert after_waves["startingItems"] == ["1056"]
+    assert len(after_waves["waves"]) == 2
+
+    _save_build(
+        monkeypatch,
+        "independent01",
+        _manual_payload(summonerSpells=["SummonerHeal", "SummonerFlash"], startingItems=["2003"]),
+    )
+    after_build = _stored_metadata(video)
+    assert after_build["summonerSpells"] == ["SummonerHeal", "SummonerFlash"]
+    assert after_build["startingItems"] == ["2003"]
+    assert [w["waveNumber"] for w in after_build["waves"]] == [1, 2], "build save keeps the waves"
+    assert after_build["firstWaveSeconds"] == 85
+
+
+def test_a_wave_can_be_removed_by_saving_the_list_without_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    video = _video("waveremove01")
+    _save_waves(monkeypatch, video, [_wave(1, 85), _wave(2, 115)], 85)
+
+    response = _save_waves(monkeypatch, video, [_wave(2, 115)], 85)
+
+    assert [w["waveNumber"] for w in response.json()["waves"]] == [2]
+    assert [w["waveNumber"] for w in _stored_metadata(video)["waves"]] == [2]
+
+
+def test_wave_save_rejects_invalid_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    video = _video("wavesbad0001")
     bad_cases = {
-        "unknown state": [{"waveNumber": 1, "timeSeconds": 85, "state": "winning", "note": ""}],
-        "wave number zero": [{"waveNumber": 0, "timeSeconds": 85, "state": "push", "note": ""}],
-        "negative time": [{"waveNumber": 1, "timeSeconds": -5, "state": "push", "note": ""}],
-        "note too long": [{"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": "x" * 500}],
+        "unknown state": [_wave(1, 85, "winning")],
+        "wave number zero": [_wave(0, 85)],
+        "negative time": [_wave(1, -5)],
+        "duplicate wave number": [_wave(1, 85), _wave(1, 115, "pull")],
     }
     for name, waves in bad_cases.items():
-        _, response = _save_manual(monkeypatch, "badwavevid1", _manual_payload(waves=waves))
-        assert response.status_code == 422, name
+        response = _save_waves(monkeypatch, video, waves, 85)
+        assert response.status_code in (400, 422), name
 
-    _, too_many = _save_manual(
-        monkeypatch,
-        "badwavevid2",
-        _manual_payload(
-            waves=[
-                {"waveNumber": 1 + n % 20, "timeSeconds": n, "state": "push", "note": ""}
-                for n in range(21)
-            ]
-        ),
+    too_many = [_wave(1 + n % 20, n) for n in range(21)]
+    assert _save_waves(monkeypatch, video, too_many, 85).status_code == 422
+
+
+def test_wave_save_only_accepts_videos_the_server_offered_or_has_saved(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    stranger = _video("neveroffer02")
+
+    response = put(
+        "/api/v1/matchups/Aatrox/Darius/waves",
+        {"video": stranger, "waves": [_wave(1, 85)], "firstWaveSeconds": 85},
+        headers=AUTH,
     )
-    assert too_many.status_code == 422
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "invalid_waves"
+    assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
 
 
 def test_waves_are_never_filled_in_by_the_automatic_description_parser() -> None:
@@ -1571,11 +1662,28 @@ def test_waves_are_never_filled_in_by_the_automatic_description_parser() -> None
     assert parsed.firstWaveSeconds is None
 
 
+def test_an_old_row_that_still_has_a_memo_is_read_without_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    video = _video("oldmemorow01")
+    _save_waves(monkeypatch, video, [_wave(1, 85)], 85)
+    with Session(database.get_engine()) as session:
+        record = session.query(MatchupVideoMetadataRecord).one()
+        record.waves_json = json.dumps(
+            [{"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": "old memo"}]
+        )
+        session.commit()
+
+    wave = _stored_metadata(video)["waves"][0]
+
+    assert wave == {"waveNumber": 1, "timeSeconds": 85, "state": "push"}
+
+
 def test_every_extracted_field_can_be_replaced_by_a_manual_save(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The auto-extracted values may be wrong or incomplete, so each can be overwritten."""
-    video = {**VIDEO_PAYLOAD, "videoUrl": "https://www.youtube.com/watch?v=overwritevi1"}
+    video = _video("overwritevi1")
     _offer_as_candidates(monkeypatch, video)
     monkeypatch.setattr(
         matchups,
@@ -1592,23 +1700,19 @@ def test_every_extracted_field_can_be_replaced_by_a_manual_save(
         {"voterToken": "voter-overwrite-12345", "video": video},
     )
 
-    _, response = _save_manual(
+    _, response = _save_build(
         monkeypatch,
         "overwritevi1",
         _manual_payload(
             summonerSpells=["SummonerFlash", "SummonerIgnite"],
             startingItems=["1056", "2003"],
             timestamps=[{"timeSeconds": 185, "timeLabel": "3:05", "label": "mine", "isKillEvent": True}],
-            waves=[{"waveNumber": 1, "timeSeconds": 85, "state": "push", "note": ""}],
-            firstWaveSeconds=85,
         ),
     )
 
     assert response.status_code == 200
-    items = get("/api/v1/matchups/Aatrox/Darius").json()["items"]
-    meta = next(i for i in items if i["videoUrl"].endswith("overwritevi1"))["metadata"]
+    meta = _stored_metadata(video)
     assert meta["analysisStatus"] == "manual_verified"
     assert meta["summonerSpells"] == ["SummonerFlash", "SummonerIgnite"]
     assert meta["startingItems"] == ["1056", "2003"]
     assert [t["label"] for t in meta["timestamps"]] == ["mine"]
-    assert meta["firstWaveSeconds"] == 85
