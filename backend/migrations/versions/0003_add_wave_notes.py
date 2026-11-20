@@ -1,4 +1,4 @@
-"""Add wave notes and the first-wave time to matchup_video_metadata
+"""Add wave notes to matchup_video_metadata
 
 Revision ID: 0003
 Revises: 0002
@@ -17,11 +17,8 @@ def upgrade() -> None:
     with op.batch_alter_table("matchup_video_metadata") as batch:
         if "waves_json" not in columns:
             batch.add_column(sa.Column("waves_json", sa.Text, nullable=True))
-        if "first_wave_seconds" not in columns:
-            batch.add_column(sa.Column("first_wave_seconds", sa.Integer, nullable=True))
 
 
 def downgrade() -> None:
     with op.batch_alter_table("matchup_video_metadata") as batch:
-        batch.drop_column("first_wave_seconds")
         batch.drop_column("waves_json")

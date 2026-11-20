@@ -121,7 +121,6 @@ class SaveMetadataRequest(BaseModel):
 class SaveWavesRequest(BaseModel):
     video: MatchupVideo
     waves: list[WaveNote] = Field(default_factory=list, max_length=20)
-    firstWaveSeconds: int | None = Field(default=None, ge=0, le=3600)
 
 
 @app.get("/api/health")
@@ -357,7 +356,6 @@ def put_matchup_video_waves(
             opponent_champion_id=opponentChampionId,
             video=body.video,
             waves=body.waves,
-            first_wave_seconds=body.firstWaveSeconds,
         )
     except UnknownChampionError as error:
         raise HTTPException(

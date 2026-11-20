@@ -1,29 +1,17 @@
 import { describe, expect, it } from "vitest";
 import type { WaveNote } from "./api";
 import {
-  WAVE_INTERVAL_SECONDS,
   waveChipLabel,
   formatClock,
   nextWaveNumber,
   parseClock,
   recordWave,
   removeWave,
-  retimeWaves,
-  waveTime,
 } from "./waves";
 
 const note = (waveNumber: number, state: WaveNote["state"]): WaveNote => ({
   waveNumber,
-  timeSeconds: 0,
   state,
-});
-
-describe("waveTime", () => {
-  it("places waves 30 seconds apart starting from the first wave", () => {
-    expect(waveTime(85, 1)).toBe(85);
-    expect(waveTime(85, 2)).toBe(115);
-    expect(waveTime(85, 4)).toBe(175);
-  });
 });
 
 describe("clock text", () => {
@@ -43,21 +31,21 @@ describe("clock text", () => {
 });
 
 describe("recordWave", () => {
-  it("adds waves in order and fills in their time from the first wave", () => {
+  it("adds waves in wave-number order, with no video time", () => {
     let waves: WaveNote[] = [];
-    waves = recordWave(waves, 85, 2, "pull");
-    waves = recordWave(waves, 85, 1, "push");
+    waves = recordWave(waves, 2, "pull");
+    waves = recordWave(waves, 1, "push");
 
-    expect(waves.map((w) => [w.waveNumber, w.timeSeconds, w.state])).toEqual([
-      [1, 85, "push"],
-      [2, 115, "pull"],
+    expect(waves).toEqual([
+      { waveNumber: 1, state: "push" },
+      { waveNumber: 2, state: "pull" },
     ]);
   });
 
   it("replaces an earlier note for the same wave", () => {
-    const waves = recordWave([note(1, "push")], 85, 1, "pull");
+    const waves = recordWave([note(1, "push")], 1, "pull");
 
-    expect(waves).toEqual([{ waveNumber: 1, timeSeconds: 85, state: "pull" }]);
+    expect(waves).toEqual([{ waveNumber: 1, state: "pull" }]);
   });
 });
 
@@ -69,14 +57,9 @@ describe("nextWaveNumber", () => {
   });
 });
 
-describe("removeWave and retimeWaves", () => {
+describe("removeWave", () => {
   it("removes only the chosen wave", () => {
     expect(removeWave([note(1, "push"), note(2, "pull")], 1).map((w) => w.waveNumber)).toEqual([2]);
-  });
-
-  it("moves every wave when the first-wave time changes", () => {
-    const moved = retimeWaves([note(1, "push"), note(2, "pull")], 90);
-    expect(moved.map((w) => w.timeSeconds)).toEqual([90, 120]);
   });
 });
 
@@ -85,12 +68,5 @@ describe("waveChipLabel", () => {
     expect(waveChipLabel({ waveNumber: 1, state: "push" })).toBe("1：プッシュ");
     expect(waveChipLabel({ waveNumber: 3, state: "pull" })).toBe("3：プル");
     expect(waveChipLabel({ waveNumber: 4, state: "unknown" })).toBe("4：不明");
-  });
-});
-
-describe("stored wave spacing", () => {
-  it("stores waves 30 seconds apart", () => {
-    expect(WAVE_INTERVAL_SECONDS).toBe(30);
-    expect(waveTime(85, 2)).toBe(115);
   });
 });

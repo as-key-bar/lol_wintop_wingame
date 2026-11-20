@@ -39,13 +39,13 @@ WAVE_STATES = ("push", "pull", "neutral", "unknown")
 
 class WaveNote(BaseModel):
     """One minion wave as noted by hand. Waves cannot be read from a description, so they
-    are always manual; a missing note means "not noted yet", never "neutral"."""
+    are always manual; a missing note means "not noted yet", never "neutral". A wave has no
+    video time: the notes are only an ordered list of push/pull states."""
 
-    # Rows stored before the memo field was removed may still carry "note"; it is ignored.
+    # Rows stored earlier may still carry "note" or "timeSeconds"; both are ignored.
     model_config = ConfigDict(extra="ignore")
 
     waveNumber: int = Field(ge=1, le=20)
-    timeSeconds: int = Field(ge=0, le=86400)
     # push/pull describe where the wave went relative to the video's player (the champion
     # selected as "me"); neutral means it stayed near the middle; unknown means the noter
     # could not tell.
@@ -61,9 +61,6 @@ class VideoMetadataAnalysis(BaseModel):
     startingItems: list[str] = Field(default_factory=list, max_length=6)
     timestamps: list[VideoTimestamp] = Field(default_factory=list, max_length=300)
     waves: list[WaveNote] = Field(default_factory=list, max_length=20)
-    # When the early-wave notes start: the time the first wave reaches the lane. Later waves
-    # are 30 seconds apart. None until someone sets it.
-    firstWaveSeconds: int | None = Field(default=None, ge=0, le=3600)
 
 
 @lru_cache(maxsize=1)

@@ -70,7 +70,6 @@ class MatchupVideoMetadataRecord(Base):
     starting_items_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     timestamps_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     waves_json: Mapped[str | None] = mapped_column(Text, nullable=True)
-    first_wave_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     updated_at: Mapped[str] = mapped_column(String(64), nullable=False)
 
 

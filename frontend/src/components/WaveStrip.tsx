@@ -7,32 +7,18 @@ import type { WaveNote, WaveState } from "@/lib/api";
 import {
   MAX_WAVES,
   WAVE_STATE_LABEL,
-  formatClock,
   nextWaveNumber,
   recordWave,
   removeWave,
-  retimeWaves,
   waveChipLabel,
-  waveTime,
 } from "@/lib/waves";
 
 type WaveStripProps = {
   waves: WaveNote[];
-  firstWaveSeconds: number | null;
   // Saves the wave list on its own, with the admin token. Rejects with an Error whose message is
   // shown to the user. The strip never saves the build (runes, spells, items, timeline).
-  onSave: (
-    waves: WaveNote[],
-    firstWaveSeconds: number | null,
-    adminToken: string,
-  ) => Promise<void>;
+  onSave: (waves: WaveNote[], adminToken: string) => Promise<void>;
   saving: boolean;
-  onJumpToTimestamp: (seconds: number) => void;
-  // The strip only reads the playback position; it never moves the video by itself.
-  playerReady: boolean;
-  currentTime: () => number | null;
-  // Lets the page load the player API only while the strip is being edited.
-  onEditingChange?: (editing: boolean) => void;
 };
 
 const BUTTONS: { state: WaveState; key: string; className: string }[] = [
@@ -44,21 +30,12 @@ const BUTTONS: { state: WaveState; key: string; className: string }[] = [
 
 // A horizontal strip under the video information: "ウェーブ管理  1：プッシュ  2：プッシュ  3：プル".
 // "編集" at the right end swaps the strip, in place, for the input controls. In the input mode a
-// wave is recorded with one button, which also seeks ahead by one wave interval and pauses.
+// wave is recorded with one button (or key) and the next wave becomes the target. The waves are
+// just an ordered list of push/pull states: they have no video time and never touch the player.
 // A recorded wave can only be deleted, not edited: to correct one, delete it and record it again.
-export function WaveStrip({
-  waves,
-  firstWaveSeconds,
-  onSave,
-  saving,
-  onJumpToTimestamp,
-  playerReady,
-  currentTime,
-  onEditingChange,
-}: WaveStripProps) {
+export function WaveStrip({ waves, onSave, saving }: WaveStripProps) {
   const [editing, setEditing] = useState(false);
   const [draftWaves, setDraftWaves] = useState<WaveNote[]>(waves);
-  const [draftFirst, setDraftFirst] = useState<number | null>(firstWaveSeconds);
   const [targetWave, setTargetWave] = useState(1);
   const [token, setToken] = useState(readStoredAdminToken);
   const [error, setError] = useState("");
@@ -67,41 +44,18 @@ export function WaveStrip({
 
   function open() {
     setDraftWaves(waves);
-    setDraftFirst(firstWaveSeconds);
     setTargetWave(nextWaveNumber(waves));
     setError("");
     setEditing(true);
-    onEditingChange?.(true);
   }
 
   function close() {
     setEditing(false);
-    onEditingChange?.(false);
-  }
-
-  function setFirstWave(seconds: number) {
-    setError("");
-    setDraftFirst(seconds);
-    setDraftWaves((previous) => retimeWaves(previous, seconds));
-    setTargetWave(nextWaveNumber(draftWaves));
-  }
-
-  function useCurrentTime() {
-    const seconds = currentTime();
-    if (seconds === null) {
-      setError("プレーヤーの準備ができていません。しばらくしてから、もう一度押してください。");
-      return;
-    }
-    setFirstWave(seconds);
   }
 
   function record(state: WaveState) {
-    if (draftFirst === null) {
-      setError("先に、最初のウェーブが来る時刻を設定してください。");
-      return;
-    }
     setError("");
-    setDraftWaves((previous) => recordWave(previous, draftFirst, waveNumber, state));
+    setDraftWaves((previous) => recordWave(previous, waveNumber, state));
     setTargetWave(Math.min(waveNumber + 1, MAX_WAVES));
   }
 
@@ -121,7 +75,7 @@ export function WaveStrip({
     }
     setError("");
     try {
-      await onSave(draftWaves, draftFirst, trimmed);
+      await onSave(draftWaves, trimmed);
       storeAdminToken(trimmed);
       close();
     } catch (failure) {
@@ -165,15 +119,12 @@ export function WaveStrip({
         <div className={styles.waveStripChips}>
           {waves.length > 0 ? (
             waves.map((wave) => (
-              <button
+              <span
                 key={wave.waveNumber}
-                type="button"
                 className={`${styles.waveChip} ${styles[`waveChip_${wave.state}`]}`}
-                title={`${formatClock(wave.timeSeconds)} へ移動`}
-                onClick={() => onJumpToTimestamp(wave.timeSeconds)}
               >
                 {waveChipLabel(wave)}
-              </button>
+              </span>
             ))
           ) : (
             <span className={styles.emptyInlineNote}>未入力</span>
@@ -194,15 +145,6 @@ export function WaveStrip({
       <div className={styles.waveStripEditHeader}>
         <div className={styles.waveStripEditTitle}>
           <h4 className={styles.waveStripTitle}>ウェーブ管理（編集）</h4>
-          <button
-            type="button"
-            className={styles.waveStripHeaderButton}
-            disabled={!playerReady}
-            title={playerReady ? undefined : "プレーヤーの準備中です"}
-            onClick={useCurrentTime}
-          >
-            ファーストウェーブの時間を現在時間に設定
-          </button>
           <span className={styles.helpWrapper}>
             <button
               type="button"
@@ -214,7 +156,7 @@ export function WaveStrip({
             </button>
             <span id="wave-help-text" role="tooltip" className={styles.helpTooltip}>
               ウェーブは概要欄から取得できないため、動画を見ながら入力します。
-              最初のウェーブが来る位置で「現在時間に設定」を押し、あとはウェーブごとにボタンを押して記録します。向きは、この動画の「自分側」のチャンピオンから見たものです。
+              ウェーブごとに、プッシュ・プルなどのボタンを押して順番に記録します。動画の再生位置は記録しません。向きは、この動画の「自分側」のチャンピオンから見たものです。
               間違えたときは、そのウェーブの左端の赤い×で削除して、入力し直してください。
             </span>
           </span>
@@ -224,33 +166,28 @@ export function WaveStrip({
         </button>
       </div>
 
-      {draftFirst !== null && (
-        <>
-          <p className={styles.waveStatus} aria-live="polite">
-            ウェーブ {waveNumber}（{formatClock(waveTime(draftFirst, waveNumber))}）：
-            {current ? `記録済み＝${WAVE_STATE_LABEL[current.state]}` : "まだ記録していません"}
-          </p>
-          <div className={styles.waveButtons}>
-            {BUTTONS.map((button) => (
-              <button
-                key={button.state}
-                type="button"
-                className={`${styles.waveButton} ${button.className}`}
-                onClick={() => record(button.state)}
-              >
-                {WAVE_STATE_LABEL[button.state]}
-                <kbd>{button.key}</kbd>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      <p className={styles.waveStatus} aria-live="polite">
+        ウェーブ {waveNumber}：
+        {current ? `記録済み＝${WAVE_STATE_LABEL[current.state]}` : "まだ記録していません"}
+      </p>
+      <div className={styles.waveButtons}>
+        {BUTTONS.map((button) => (
+          <button
+            key={button.state}
+            type="button"
+            className={`${styles.waveButton} ${button.className}`}
+            onClick={() => record(button.state)}
+          >
+            {WAVE_STATE_LABEL[button.state]}
+            <kbd>{button.key}</kbd>
+          </button>
+        ))}
+      </div>
 
       {draftWaves.length > 0 && (
         <ul className={styles.waveStripDeleteList}>
           {draftWaves.map((wave) => (
             <li key={wave.waveNumber} className={styles.waveEditItem}>
-              <span className={styles.waveEditTime}>{formatClock(wave.timeSeconds)}</span>
               <span className={`${styles.waveChip} ${styles[`waveChip_${wave.state}`]}`}>
                 <button
                   type="button"

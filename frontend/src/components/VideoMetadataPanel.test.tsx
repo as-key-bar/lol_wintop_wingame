@@ -56,7 +56,6 @@ function metadata(
     startingItems: [],
     timestamps: [],
     waves: [],
-    firstWaveSeconds: null,
     ...overrides,
   };
 }
@@ -192,8 +191,7 @@ describe("VideoMetadataPanel build editing (independent of waves)", () => {
   it("does not show waves: they live in their own strip", () => {
     renderPanel({
       metadata: metadata({
-        waves: [{ waveNumber: 1, timeSeconds: 85, state: "push" }],
-        firstWaveSeconds: 85,
+        waves: [{ waveNumber: 1, state: "push" }],
       }),
     });
 
@@ -204,8 +202,7 @@ describe("VideoMetadataPanel build editing (independent of waves)", () => {
     const { onSaveManualMetadata } = renderPanel({
       metadata: metadata({
         timestamps: [{ timeSeconds: 60, timeLabel: "1:00", label: "auto", isKillEvent: false }],
-        waves: [{ waveNumber: 1, timeSeconds: 85, state: "push" }],
-        firstWaveSeconds: 85,
+        waves: [{ waveNumber: 1, state: "push" }],
       }),
     });
 
@@ -218,7 +215,6 @@ describe("VideoMetadataPanel build editing (independent of waves)", () => {
     const [saved] = onSaveManualMetadata.mock.calls[0];
     expect(saved.timestamps).toEqual([]);
     expect(saved).not.toHaveProperty("waves");
-    expect(saved).not.toHaveProperty("firstWaveSeconds");
   });
 
   it("tells the page when the editor opens and closes so the player can be controlled", async () => {

@@ -30,7 +30,6 @@ export type WaveState = "push" | "pull" | "neutral" | "unknown";
 
 export type WaveNote = {
   waveNumber: number;
-  timeSeconds: number;
   state: WaveState;
 };
 
@@ -43,10 +42,9 @@ export type VideoMetadataAnalysis = {
   // Waves have their own save (PUT /waves). They are read back with the metadata, but saving the
   // build never sends them, so a build edit cannot overwrite wave input or the other way round.
   waves: WaveNote[];
-  firstWaveSeconds: number | null;
 };
 
-export type BuildSavePayload = Omit<VideoMetadataAnalysis, "waves" | "firstWaveSeconds">;
+export type BuildSavePayload = Omit<VideoMetadataAnalysis, "waves">;
 
 export type RuneAsset = {
   id: number;

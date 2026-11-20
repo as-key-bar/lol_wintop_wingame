@@ -66,12 +66,9 @@ function MatchupContent() {
   const [error, setError] = useState("");
   const [playerFrame, setPlayerFrame] = useState<HTMLIFrameElement | null>(null);
   const [buildEditing, setBuildEditing] = useState(false);
-  const [waveEditing, setWaveEditing] = useState(false);
-  // The player API is only loaded while one of the manual editors is open, so ordinary viewing
-  // never pulls in the extra script.
-  const player = useYouTubePlayer(
-    buildEditing || waveEditing ? playerFrame : null,
-  );
+  // The player API is only loaded while the build editor is open (its timeline reads the
+  // playback position), so ordinary viewing never pulls in the extra script.
+  const player = useYouTubePlayer(buildEditing ? playerFrame : null);
 
   useEffect(() => {
     if (!playerChampionId || !opponentChampionId) {
@@ -274,7 +271,6 @@ function MatchupContent() {
   async function handleSaveWaves(
     video: MatchupVideo,
     waves: WaveNote[],
-    firstWaveSeconds: number | null,
     adminToken: string,
   ) {
     if (!playerChampionId || !opponentChampionId || savingWaves) {
@@ -292,7 +288,7 @@ function MatchupContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${adminToken}`,
         },
-        body: JSON.stringify({ video, waves, firstWaveSeconds }),
+        body: JSON.stringify({ video, waves }),
       });
       if (response.status === 401) {
         throw new Error("管理者トークンが正しくありません。");
@@ -318,7 +314,6 @@ function MatchupContent() {
                 metadata: {
                   ...(item.metadata ?? saved),
                   waves: saved.waves,
-                  firstWaveSeconds: saved.firstWaveSeconds,
                 },
               }
             : item,
@@ -665,18 +660,10 @@ function MatchupContent() {
               <WaveStrip
                 key={activeVideo.id}
                 waves={activeVideo.metadata?.waves ?? []}
-                firstWaveSeconds={activeVideo.metadata?.firstWaveSeconds ?? null}
                 saving={savingWaves}
-                onSave={(waves, first, adminToken) =>
-                  handleSaveWaves(activeVideo, waves, first, adminToken)
+                onSave={(waves, adminToken) =>
+                  handleSaveWaves(activeVideo, waves, adminToken)
                 }
-                playerReady={player.ready}
-                currentTime={player.currentTime}
-                onEditingChange={setWaveEditing}
-                onJumpToTimestamp={(seconds) => {
-                  setPlaybackStartSeconds(seconds);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
               />
 
               <VideoMetadataPanel

@@ -262,7 +262,6 @@ def _metadata_record_to_model(
             startingItems=items,
             timestamps=timestamps,
             waves=waves,
-            firstWaveSeconds=meta_record.first_wave_seconds,
         )
     except Exception:
         logger.warning(
@@ -309,7 +308,6 @@ def _upsert_metadata_record(
         meta_record.waves_json = json.dumps(
             [w.model_dump() for w in analysis.waves], ensure_ascii=False
         )
-        meta_record.first_wave_seconds = analysis.firstWaveSeconds
     meta_record.updated_at = now_iso
     return meta_record
 
@@ -727,9 +725,8 @@ def save_video_waves(
     opponent_champion_id: str,
     video: MatchupVideo,
     waves: list[WaveNote],
-    first_wave_seconds: int | None,
 ) -> VideoMetadataAnalysis:
-    """Saves only the wave notes and the first-wave time; the build fields are left as they are."""
+    """Saves only the wave notes; the build fields are left as they are."""
     _, champions = load_catalog()
     by_id = {champion.id: champion for champion in champions}
     player = by_id.get(player_champion_id)
@@ -800,7 +797,6 @@ def save_video_waves(
                 [w.model_dump() for w in sorted(waves, key=lambda w: w.waveNumber)],
                 ensure_ascii=False,
             )
-            meta_record.first_wave_seconds = first_wave_seconds
             meta_record.updated_at = now_iso()
             session.commit()
             return _metadata_record_to_model(meta_record) or VideoMetadataAnalysis()

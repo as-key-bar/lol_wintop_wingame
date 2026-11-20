@@ -552,7 +552,7 @@
  * instead of shrinking the video further. The width follows from the 16:9 ratio.
  */
 .videoPlayerFrame {
-  --player-room: 560px;
+  --player-room: 480px;
   --player-height: max(270px, calc(100vh - var(--player-room)));
   width: min(100%, calc(var(--player-height) * 16 / 9));
   margin: 0 auto;
@@ -1332,30 +1332,13 @@ button.waveChip {
   }
 }
 
-/* ウェーブ管理（編集）: 見出し・現在時間ボタン・ヘルプを横一列に並べる */
+/* ウェーブ管理（編集）: 見出しとヘルプを横一列に並べる */
 .waveStripEditTitle {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   min-width: 0;
-}
-
-.waveStripHeaderButton {
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid #355b86;
-  background: rgba(88, 166, 255, 0.12);
-  color: inherit;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.waveStripHeaderButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* はてなアイコン: マウスを乗せる（またはキーボードでフォーカスする）と説明が出る */
@@ -1405,20 +1388,9 @@ button.waveChip {
   opacity: 1;
 }
 
-/* 各ウェーブ: 上に小さく時間、アイコンの左端に赤い×（削除） */
+/* 各ウェーブ: アイコンの左端に赤い×（削除） */
 .waveEditItem {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-
-.waveEditTime {
-  padding-left: 6px;
-  font-size: 0.68rem;
-  line-height: 1;
-  color: #8190a3;
-  font-variant-numeric: tabular-nums;
 }
 
 .waveChip:has(.waveDeleteMark) {

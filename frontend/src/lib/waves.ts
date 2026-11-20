@@ -1,8 +1,6 @@
 import type { WaveNote, WaveState } from "@/lib/api";
 
-// Minion waves reach the lane at a fixed interval; once the first one is known, the time
-// of every later wave follows from it. This is the time that gets stored.
-export const WAVE_INTERVAL_SECONDS = 30;
+// Waves are an ordered list of push/pull states; they carry no video time.
 export const MAX_WAVES = 20;
 
 export const WAVE_STATE_LABEL: Record<WaveState, string> = {
@@ -15,10 +13,6 @@ export const WAVE_STATE_LABEL: Record<WaveState, string> = {
 // "1：プッシュ" — the label of one wave in the strip.
 export function waveChipLabel(wave: { waveNumber: number; state: WaveState }): string {
   return `${wave.waveNumber}：${WAVE_STATE_LABEL[wave.state]}`;
-}
-
-export function waveTime(firstWaveSeconds: number, waveNumber: number): number {
-  return firstWaveSeconds + (waveNumber - 1) * WAVE_INTERVAL_SECONDS;
 }
 
 export function formatClock(totalSeconds: number): string {
@@ -49,17 +43,8 @@ export function nextWaveNumber(waves: WaveNote[]): number {
 }
 
 // Records one wave, replacing an earlier note for the same wave number.
-export function recordWave(
-  waves: WaveNote[],
-  firstWaveSeconds: number,
-  waveNumber: number,
-  state: WaveState,
-): WaveNote[] {
-  const next: WaveNote = {
-    waveNumber,
-    timeSeconds: waveTime(firstWaveSeconds, waveNumber),
-    state,
-  };
+export function recordWave(waves: WaveNote[], waveNumber: number, state: WaveState): WaveNote[] {
+  const next: WaveNote = { waveNumber, state };
   return [...waves.filter((wave) => wave.waveNumber !== waveNumber), next].sort(
     (a, b) => a.waveNumber - b.waveNumber,
   );
@@ -67,12 +52,4 @@ export function recordWave(
 
 export function removeWave(waves: WaveNote[], waveNumber: number): WaveNote[] {
   return waves.filter((wave) => wave.waveNumber !== waveNumber);
-}
-
-// Moving the first-wave time moves every later wave with it.
-export function retimeWaves(waves: WaveNote[], firstWaveSeconds: number): WaveNote[] {
-  return waves.map((wave) => ({
-    ...wave,
-    timeSeconds: waveTime(firstWaveSeconds, wave.waveNumber),
-  }));
 }
