@@ -68,6 +68,19 @@ async def limit_request_body(request, call_next):
     return await call_next(request)
 
 
+@app.exception_handler(UnknownChampionError)
+async def unknown_champion_handler(request, error):
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": {
+                "code": "unknown_champion",
+                "message": "指定されたチャンピオンが見つかりません。",
+            }
+        },
+    )
+
+
 def require_admin_token(authorization: str | None = Header(default=None)) -> None:
     expected = os.getenv("ADMIN_TOKEN", "").strip()
     if not expected:
@@ -173,7 +186,6 @@ def get_champions(
 def get_matchup(
     playerChampionId: str,
     opponentChampionId: str,
-    includeCandidates: bool = Query(default=False),
     voterToken: str | None = Query(default=None, max_length=128),
 ) -> MatchupResponse:
     voter_hash = compute_voter_hash(voterToken)
@@ -181,17 +193,8 @@ def get_matchup(
         items = get_matchup_videos(
             playerChampionId,
             opponentChampionId,
-            include_candidates=includeCandidates,
             voter_hash=voter_hash,
         )
-    except UnknownChampionError as error:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "code": "unknown_champion",
-                "message": "指定されたチャンピオンが見つかりません。",
-            },
-        ) from error
     except RuntimeError as error:
         logger.exception("Matchup catalog request failed")
         raise HTTPException(
@@ -227,14 +230,6 @@ def post_matchup_upvote(
             video=body.video,
             voter_hash=voter_hash,
         )
-    except UnknownChampionError as error:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "code": "unknown_champion",
-                "message": "指定されたチャンピオンが見つかりません。",
-            },
-        ) from error
     except InvalidUpvoteError as error:
         raise HTTPException(
             status_code=400,
@@ -279,21 +274,12 @@ def post_analyze_matchup_video(
     opponentChampionId: str,
     body: AnalyzeMetadataRequest,
 ) -> VideoMetadataAnalysis:
-    try:
-        return analyze_matchup_video_metadata(
-            player_champion_id=playerChampionId,
-            opponent_champion_id=opponentChampionId,
-            video=body.video,
-            refresh=body.refresh,
-        )
-    except UnknownChampionError as error:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "code": "unknown_champion",
-                "message": "指定されたチャンピオンが見つかりません。",
-            },
-        ) from error
+    return analyze_matchup_video_metadata(
+        player_champion_id=playerChampionId,
+        opponent_champion_id=opponentChampionId,
+        video=body.video,
+        refresh=body.refresh,
+    )
 
 
 @app.put(
@@ -313,14 +299,6 @@ def put_matchup_video_metadata(
             video=body.video,
             metadata=body.metadata,
         )
-    except UnknownChampionError as error:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "code": "unknown_champion",
-                "message": "指定されたチャンピオンが見つかりません。",
-            },
-        ) from error
     except InvalidUpvoteError as error:
         raise HTTPException(
             status_code=400,
@@ -357,14 +335,6 @@ def put_matchup_video_waves(
             video=body.video,
             waves=body.waves,
         )
-    except UnknownChampionError as error:
-        raise HTTPException(
-            status_code=404,
-            detail={
-                "code": "unknown_champion",
-                "message": "指定されたチャンピオンが見つかりません。",
-            },
-        ) from error
     except InvalidUpvoteError as error:
         raise HTTPException(
             status_code=400,

@@ -274,11 +274,9 @@ def _upsert_metadata_record(
     session: Session,
     video_record_id: str,
     analysis: VideoMetadataAnalysis,
-    *,
-    write_waves: bool = False,
 ) -> MatchupVideoMetadataRecord:
-    """Writes the build fields. Waves are a separate input with their own save, so they are
-    only written when write_waves is set; saving a build never changes them."""
+    """Writes the build fields. Waves are a separate input with their own save
+    (save_video_waves), so saving a build never changes them."""
     now_iso = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     meta_record = session.get(MatchupVideoMetadataRecord, video_record_id)
     if meta_record is None:
@@ -304,12 +302,66 @@ def _upsert_metadata_record(
     meta_record.timestamps_json = json.dumps(
         [ts.model_dump() for ts in analysis.timestamps], ensure_ascii=False
     )
-    if write_waves:
-        meta_record.waves_json = json.dumps(
-            [w.model_dump() for w in analysis.waves], ensure_ascii=False
-        )
     meta_record.updated_at = now_iso
     return meta_record
+
+
+def _resolve_matchup(player_champion_id: str, opponent_champion_id: str):
+    """Returns (player, opponent) or raises UnknownChampionError."""
+    _, champions = load_catalog()
+    by_id = {champion.id: champion for champion in champions}
+    player = by_id.get(player_champion_id)
+    opponent = by_id.get(opponent_champion_id)
+    if not player or not opponent:
+        raise UnknownChampionError(
+            f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
+        )
+    return player, opponent
+
+
+def _require_video_for_matchup(
+    player_champion_id: str, opponent_champion_id: str, video: MatchupVideo
+) -> None:
+    """Checks a submitted video against the route's matchup (champion ids and title)."""
+    player, opponent = _resolve_matchup(player_champion_id, opponent_champion_id)
+    if (
+        video.playerChampionId != player_champion_id
+        or video.opponentChampionId != opponent_champion_id
+    ):
+        raise InvalidUpvoteError("Video champion IDs do not match the route matchup")
+    if not title_matches_matchup(video.title, player, opponent):
+        raise InvalidUpvoteError(
+            "Video title does not match the specified top-lane matchup"
+        )
+
+
+def _new_video_record(
+    player_champion_id: str,
+    opponent_champion_id: str,
+    video: MatchupVideo,
+    upvote_count: int = 0,
+) -> MatchupVideoRecord:
+    """A row for a video the server offered. The id is derived from the YouTube video id,
+    never taken from the client."""
+    return MatchupVideoRecord(
+        id=canonical_video_record_id(
+            player_champion_id, opponent_champion_id, video.videoUrl
+        ),
+        player_champion_id=player_champion_id,
+        opponent_champion_id=opponent_champion_id,
+        title=video.title,
+        video_url=video.videoUrl,
+        channel_name=video.channelName,
+        channel_url=video.channelUrl,
+        published_at=video.publishedAt,
+        game_patch=video.gamePatch,
+        verified_at=video.verifiedAt,
+        verification_status="verified",
+        embed_status=video.embedStatus,
+        source_url=video.sourceUrl,
+        upvote_count=upvote_count,
+        fetched_at=now_iso(),
+    )
 
 
 def _record_to_model(
@@ -426,7 +478,6 @@ def _load_saved_matchup_videos(
 def get_matchup_videos(
     player_champion_id: str,
     opponent_champion_id: str,
-    include_candidates: bool = False,
     voter_hash: str | None = None,
 ) -> list[MatchupVideo]:
     valid_champion_ids = get_champion_ids()
@@ -478,28 +529,10 @@ def toggle_matchup_video_upvote(
     video: MatchupVideo,
     voter_hash: str | None,
 ) -> MatchupVideo:
-    _, champions = load_catalog()
-    by_id = {champion.id: champion for champion in champions}
-    player = by_id.get(player_champion_id)
-    opponent = by_id.get(opponent_champion_id)
-    if not player or not opponent:
-        raise UnknownChampionError(
-            f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
-        )
-
+    _resolve_matchup(player_champion_id, opponent_champion_id)
     if not voter_hash:
         raise InvalidUpvoteError("voterToken is required to upvote a video")
-
-    if (
-        video.playerChampionId != player_champion_id
-        or video.opponentChampionId != opponent_champion_id
-    ):
-        raise InvalidUpvoteError("Video champion IDs do not match the route matchup")
-
-    if not title_matches_matchup(video.title, player, opponent):
-        raise InvalidUpvoteError(
-            "Video title does not match the specified top-lane matchup"
-        )
+    _require_video_for_matchup(player_champion_id, opponent_champion_id, video)
 
     seed_videos = load_matchups()
     try:
@@ -524,24 +557,8 @@ def toggle_matchup_video_upvote(
                     raise InvalidUpvoteError(
                         "Only videos offered by the matchup search can be upvoted"
                     )
-                record = MatchupVideoRecord(
-                    id=canonical_video_record_id(
-                        player_champion_id, opponent_champion_id, video.videoUrl
-                    ),
-                    player_champion_id=player_champion_id,
-                    opponent_champion_id=opponent_champion_id,
-                    title=video.title,
-                    video_url=video.videoUrl,
-                    channel_name=video.channelName,
-                    channel_url=video.channelUrl,
-                    published_at=video.publishedAt,
-                    game_patch=video.gamePatch,
-                    verified_at=video.verifiedAt,
-                    verification_status="verified",
-                    embed_status=video.embedStatus,
-                    source_url=video.sourceUrl,
-                    upvote_count=0,
-                    fetched_at=now_iso(),
+                record = _new_video_record(
+                    player_champion_id, opponent_champion_id, video
                 )
                 session.add(record)
                 session.flush()
@@ -650,25 +667,7 @@ def save_manual_video_metadata(
     video: MatchupVideo,
     metadata: VideoMetadataAnalysis,
 ) -> VideoMetadataAnalysis:
-    _, champions = load_catalog()
-    by_id = {champion.id: champion for champion in champions}
-    player = by_id.get(player_champion_id)
-    opponent = by_id.get(opponent_champion_id)
-    if not player or not opponent:
-        raise UnknownChampionError(
-            f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
-        )
-
-    if (
-        video.playerChampionId != player_champion_id
-        or video.opponentChampionId != opponent_champion_id
-    ):
-        raise InvalidUpvoteError("Video champion IDs do not match the route matchup")
-
-    if not title_matches_matchup(video.title, player, opponent):
-        raise InvalidUpvoteError(
-            "Video title does not match the specified top-lane matchup"
-        )
+    _require_video_for_matchup(player_champion_id, opponent_champion_id, video)
 
     verified_metadata = VideoMetadataAnalysis(
         analysisStatus="manual_verified",
@@ -683,27 +682,18 @@ def save_manual_video_metadata(
         engine = get_engine()
         ensure_database_seeded(engine, seed_videos)
         with Session(engine) as session:
-            record_id = canonical_video_record_id(
-                player_champion_id, opponent_champion_id, video.videoUrl
+            record = session.get(
+                MatchupVideoRecord,
+                canonical_video_record_id(
+                    player_champion_id, opponent_champion_id, video.videoUrl
+                ),
             )
-            record = session.get(MatchupVideoRecord, record_id)
             if record is None:
-                record = MatchupVideoRecord(
-                    id=record_id,
-                    player_champion_id=player_champion_id,
-                    opponent_champion_id=opponent_champion_id,
-                    title=video.title,
-                    video_url=video.videoUrl,
-                    channel_name=video.channelName,
-                    channel_url=video.channelUrl,
-                    published_at=video.publishedAt,
-                    game_patch=video.gamePatch,
-                    verified_at=video.verifiedAt,
-                    verification_status="verified",
-                    embed_status=video.embedStatus,
-                    source_url=video.sourceUrl,
+                record = _new_video_record(
+                    player_champion_id,
+                    opponent_champion_id,
+                    video,
                     upvote_count=video.upvoteCount,
-                    fetched_at=now_iso(),
                 )
                 session.add(record)
                 session.flush()
@@ -727,23 +717,7 @@ def save_video_waves(
     waves: list[WaveNote],
 ) -> VideoMetadataAnalysis:
     """Saves only the wave notes; the build fields are left as they are."""
-    _, champions = load_catalog()
-    by_id = {champion.id: champion for champion in champions}
-    player = by_id.get(player_champion_id)
-    opponent = by_id.get(opponent_champion_id)
-    if not player or not opponent:
-        raise UnknownChampionError(
-            f"Unknown champion in matchup: {player_champion_id} vs {opponent_champion_id}"
-        )
-    if (
-        video.playerChampionId != player_champion_id
-        or video.opponentChampionId != opponent_champion_id
-    ):
-        raise InvalidUpvoteError("Video champion IDs do not match the route matchup")
-    if not title_matches_matchup(video.title, player, opponent):
-        raise InvalidUpvoteError(
-            "Video title does not match the specified top-lane matchup"
-        )
+    _require_video_for_matchup(player_champion_id, opponent_champion_id, video)
     numbers = [wave.waveNumber for wave in waves]
     if len(set(numbers)) != len(numbers):
         raise InvalidUpvoteError("Each wave number can appear only once")
@@ -753,10 +727,12 @@ def save_video_waves(
         engine = get_engine()
         ensure_database_seeded(engine, seed_videos)
         with Session(engine) as session:
-            record_id = canonical_video_record_id(
-                player_champion_id, opponent_champion_id, video.videoUrl
+            record = session.get(
+                MatchupVideoRecord,
+                canonical_video_record_id(
+                    player_champion_id, opponent_champion_id, video.videoUrl
+                ),
             )
-            record = session.get(MatchupVideoRecord, record_id)
             if record is None:
                 # Same rule as a vote: only videos this server offered may become rows.
                 if not was_offered_as_candidate(
@@ -765,22 +741,8 @@ def save_video_waves(
                     raise InvalidUpvoteError(
                         "Only videos offered by the matchup search can be edited"
                     )
-                record = MatchupVideoRecord(
-                    id=record_id,
-                    player_champion_id=player_champion_id,
-                    opponent_champion_id=opponent_champion_id,
-                    title=video.title,
-                    video_url=video.videoUrl,
-                    channel_name=video.channelName,
-                    channel_url=video.channelUrl,
-                    published_at=video.publishedAt,
-                    game_patch=video.gamePatch,
-                    verified_at=video.verifiedAt,
-                    verification_status="verified",
-                    embed_status=video.embedStatus,
-                    source_url=video.sourceUrl,
-                    upvote_count=0,
-                    fetched_at=now_iso(),
+                record = _new_video_record(
+                    player_champion_id, opponent_champion_id, video
                 )
                 session.add(record)
                 session.flush()

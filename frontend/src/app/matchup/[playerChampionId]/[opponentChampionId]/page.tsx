@@ -12,6 +12,9 @@ import {
   formatIsoDate,
   getOrCreateVoterToken,
   getYouTubeEmbedUrl,
+  matchupApiUrl,
+  putAsAdmin,
+  readErrorMessage,
   type Champion,
   type ChampionResponse,
   type BuildSavePayload,
@@ -57,8 +60,6 @@ function MatchupContent() {
     number | null
   >(null);
   const [loading, setLoading] = useState(true);
-  const [loadingCandidates, setLoadingCandidates] = useState(false);
-  const [searchedCandidates, setSearchedCandidates] = useState(false);
   const [upvotingVideoId, setUpvotingVideoId] = useState<string | null>(null);
   const [analyzingVideoId, setAnalyzingVideoId] = useState<string | null>(null);
   const [savingMetadata, setSavingMetadata] = useState(false);
@@ -82,16 +83,12 @@ function MatchupContent() {
       setError("");
       setMatchupVideos([]);
       setSelectedVideoId(null);
-      setSearchedCandidates(false);
 
       try {
         const voterToken = getOrCreateVoterToken();
         const championsUrl = new URL("/api/v1/champions", apiBaseUrl);
         const gameAssetsUrl = new URL("/api/v1/game-assets", apiBaseUrl);
-        const matchupUrl = new URL(
-          `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}`,
-          apiBaseUrl,
-        );
+        const matchupUrl = matchupApiUrl(playerChampionId, opponentChampionId);
         if (voterToken) {
           matchupUrl.searchParams.set("voterToken", voterToken);
         }
@@ -123,30 +120,17 @@ function MatchupContent() {
         }
 
         if (!matchupResponse.ok) {
-          let errorMessage =
-            "マッチアップ情報を取得できませんでした。APIの起動状態を確認してください。";
-          try {
-            const payload = (await matchupResponse.json()) as {
-              detail?: { message?: string };
-            };
-            if (payload.detail?.message) {
-              errorMessage = payload.detail.message;
-            }
-          } catch {
-            // Keep fallback error message when response body is not JSON.
-          }
-          throw new Error(errorMessage);
+          throw new Error(
+            await readErrorMessage(
+              matchupResponse,
+              "マッチアップ情報を取得できませんでした。APIの起動状態を確認してください。",
+            ),
+          );
         }
 
         const matchupData = (await matchupResponse.json()) as MatchupResponse;
         setMatchupVideos(matchupData.items);
         setSelectedVideoId(matchupData.items[0]?.id ?? null);
-        if (
-          matchupData.items.length === 0 ||
-          matchupData.items.some((item) => item.origin === "youtube_search")
-        ) {
-          setSearchedCandidates(true);
-        }
       } catch (requestError) {
         if (
           requestError instanceof Error &&
@@ -191,10 +175,7 @@ function MatchupContent() {
     setAnalyzingVideoId(video.id);
     setError("");
     try {
-      const analyzeUrl = new URL(
-        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/analyze`,
-        apiBaseUrl,
-      );
+      const analyzeUrl = matchupApiUrl(playerChampionId, opponentChampionId, "/analyze");
       const response = await fetch(analyzeUrl, {
         method: "POST",
         headers: {
@@ -232,30 +213,12 @@ function MatchupContent() {
     }
     setSavingMetadata(true);
     try {
-      const saveUrl = new URL(
-        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/metadata`,
-        apiBaseUrl,
+      const savedMetadata = await putAsAdmin<VideoMetadataAnalysis>(
+        matchupApiUrl(playerChampionId, opponentChampionId, "/metadata"),
+        { video, metadata },
+        adminToken,
+        "ビルド情報の保存に失敗しました。",
       );
-      const response = await fetch(saveUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({ video, metadata }),
-      });
-      if (response.status === 401) {
-        throw new Error("管理者トークンが正しくありません。");
-      }
-      if (response.status === 403) {
-        throw new Error(
-          "サーバーで管理者機能が無効です（ADMIN_TOKEN が未設定です）。",
-        );
-      }
-      if (!response.ok) {
-        throw new Error("ビルド情報の保存に失敗しました。");
-      }
-      const savedMetadata = (await response.json()) as VideoMetadataAnalysis;
       setMatchupVideos((previous) =>
         previous.map((item) =>
           item.id === video.id
@@ -278,33 +241,12 @@ function MatchupContent() {
     }
     setSavingWaves(true);
     try {
-      const saveUrl = new URL(
-        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/waves`,
-        apiBaseUrl,
+      const saved = await putAsAdmin<VideoMetadataAnalysis>(
+        matchupApiUrl(playerChampionId, opponentChampionId, "/waves"),
+        { video, waves },
+        adminToken,
+        "ウェーブ情報の保存に失敗しました。",
       );
-      const response = await fetch(saveUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${adminToken}`,
-        },
-        body: JSON.stringify({ video, waves }),
-      });
-      if (response.status === 401) {
-        throw new Error("管理者トークンが正しくありません。");
-      }
-      if (response.status === 403) {
-        throw new Error(
-          "サーバーで管理者機能が無効です（ADMIN_TOKEN が未設定です）。",
-        );
-      }
-      if (response.status === 429) {
-        throw new Error("操作が多すぎます。少し待ってからやり直してください。");
-      }
-      if (!response.ok) {
-        throw new Error("ウェーブ情報の保存に失敗しました。");
-      }
-      const saved = (await response.json()) as VideoMetadataAnalysis;
       setMatchupVideos((previous) =>
         previous.map((item) =>
           item.id === video.id
@@ -324,35 +266,6 @@ function MatchupContent() {
     }
   }
 
-  async function handleLoadMoreCandidates() {
-    if (!playerChampionId || !opponentChampionId || loadingCandidates) {
-      return;
-    }
-    setLoadingCandidates(true);
-    try {
-      const voterToken = getOrCreateVoterToken();
-      const matchupUrl = new URL(
-        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}`,
-        apiBaseUrl,
-      );
-      matchupUrl.searchParams.set("includeCandidates", "true");
-      if (voterToken) {
-        matchupUrl.searchParams.set("voterToken", voterToken);
-      }
-      const response = await fetch(matchupUrl);
-      if (response.ok) {
-        const data = (await response.json()) as MatchupResponse;
-        setMatchupVideos(data.items);
-        if (!selectedVideoId && data.items[0]) {
-          setSelectedVideoId(data.items[0].id);
-        }
-      }
-    } finally {
-      setSearchedCandidates(true);
-      setLoadingCandidates(false);
-    }
-  }
-
   async function handleToggleUpvote(video: MatchupVideo) {
     if (!playerChampionId || !opponentChampionId || upvotingVideoId) {
       return;
@@ -362,10 +275,7 @@ function MatchupContent() {
     setError("");
     try {
       const voterToken = getOrCreateVoterToken();
-      const upvoteUrl = new URL(
-        `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}/upvote`,
-        apiBaseUrl,
-      );
+      const upvoteUrl = matchupApiUrl(playerChampionId, opponentChampionId, "/upvote");
       const response = await fetch(upvoteUrl, {
         method: "POST",
         headers: {
@@ -377,19 +287,12 @@ function MatchupContent() {
         }),
       });
       if (!response.ok) {
-        let errorMessage =
-          "UVの保存に失敗しました。データベースの起動状態を確認してください。";
-        try {
-          const payload = (await response.json()) as {
-            detail?: { message?: string };
-          };
-          if (payload.detail?.message) {
-            errorMessage = payload.detail.message;
-          }
-        } catch {
-          // Keep fallback error message.
-        }
-        throw new Error(errorMessage);
+        throw new Error(
+          await readErrorMessage(
+            response,
+            "UVの保存に失敗しました。データベースの起動状態を確認してください。",
+          ),
+        );
       }
 
       const updatedVideo = (await response.json()) as MatchupVideo;
@@ -453,20 +356,6 @@ function MatchupContent() {
         </h1>
 
         <div className={styles.matchupBarRight}>
-          {!loading &&
-            !error &&
-            !searchedCandidates &&
-            matchupVideos.length > 0 &&
-            matchupVideos.length < 5 && (
-              <button
-                type="button"
-                className={styles.loadCandidatesButton}
-                disabled={loadingCandidates}
-                onClick={handleLoadMoreCandidates}
-              >
-                {loadingCandidates ? "候補を検索中..." : "+ YouTube候補を検索"}
-              </button>
-            )}
           {!loading && !error && (
             <span className={styles.videoCount}>
               全 {matchupVideos.length} 件

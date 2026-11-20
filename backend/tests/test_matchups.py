@@ -297,42 +297,6 @@ def test_search_cache_lasts_72_hours_so_repeat_visits_do_not_spend_quota() -> No
     assert youtube_search.SEARCH_CACHE_TTL_SECONDS >= 3 * 24 * 3600
 
 
-def test_include_candidates_flag_is_still_accepted(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    _use_seed(tmp_path, monkeypatch, [_seed_item("seedvideo03", "Singed", "TahmKench")])
-
-    monkeypatch.setattr(
-        matchups,
-        "search_youtube_matchup_candidates",
-        lambda player_champion_id, opponent_champion_id, max_results=5: [
-            {
-                "id": "yt-singed-vs-tahmkench-extra1",
-                "playerChampionId": player_champion_id,
-                "opponentChampionId": opponent_champion_id,
-                "title": "Singed Top vs Tahm Kench - EUW Challenger Patch 26.22",
-                "videoUrl": "https://www.youtube.com/watch?v=extra1",
-                "channelName": "Challenger Replays",
-                "channelUrl": "https://www.youtube.com/@ChallengerReplays",
-                "publishedAt": None,
-                "gamePatch": "26.22",
-                "verifiedAt": "2026-11-11T11:40:00+09:00",
-                "verificationStatus": "verified",
-                "embedStatus": "unknown",
-                "sourceUrl": "https://www.youtube.com/results?search_query=Singed+Top+vs+Tahm+Kench",
-                "origin": "youtube_search",
-            }
-        ],
-    )
-
-    response = get("/api/v1/matchups/Singed/TahmKench?includeCandidates=true")
-
-    assert response.status_code == 200
-    items = response.json()["items"]
-    assert len(items) == 2
-    assert [item["origin"] for item in items] == ["saved", "youtube_search"]
-
-
 def test_matchup_includes_youtube_search_candidates_when_saved_replays_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

@@ -163,7 +163,7 @@ export function getYouTubeEmbedUrl(
       return null;
     }
     const base = `https://www.youtube.com/embed/${encodeURIComponent(videoId)}`;
-    // enablejsapi lets the page read the playback time and seek (wave tagging).
+    // enablejsapi lets the page read the playback time (the build editor's timeline).
     const params = new URLSearchParams({ enablejsapi: "1" });
     if (typeof window !== "undefined") {
       params.set("origin", window.location.origin);
@@ -200,3 +200,57 @@ export function getOrCreateVoterToken(): string {
   }
 }
 
+
+export function matchupApiUrl(
+  playerChampionId: string,
+  opponentChampionId: string,
+  suffix = "",
+): URL {
+  return new URL(
+    `/api/v1/matchups/${encodeURIComponent(playerChampionId)}/${encodeURIComponent(opponentChampionId)}${suffix}`,
+    apiBaseUrl,
+  );
+}
+
+// The server's own message for a failed response, or the fallback when there is none.
+export async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const payload = (await response.json()) as { detail?: { message?: string } };
+    return payload.detail?.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+// PUT with the admin token. Throws an Error whose message is shown to the user.
+export async function putAsAdmin<T>(
+  url: URL,
+  body: unknown,
+  adminToken: string,
+  failureMessage: string,
+): Promise<T> {
+  const response = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${adminToken}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 401) {
+    throw new Error("管理者トークンが正しくありません。");
+  }
+  if (response.status === 403) {
+    throw new Error("サーバーで管理者機能が無効です（ADMIN_TOKEN が未設定です）。");
+  }
+  if (response.status === 429) {
+    throw new Error("操作が多すぎます。少し待ってからやり直してください。");
+  }
+  if (!response.ok) {
+    throw new Error(failureMessage);
+  }
+  return (await response.json()) as T;
+}

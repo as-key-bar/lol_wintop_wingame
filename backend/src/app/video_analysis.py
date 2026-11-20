@@ -34,9 +34,6 @@ class VideoTimestamp(BaseModel):
     isKillEvent: bool = False
 
 
-WAVE_STATES = ("push", "pull", "neutral", "unknown")
-
-
 class WaveNote(BaseModel):
     """One minion wave as noted by hand. Waves cannot be read from a description, so they
     are always manual; a missing note means "not noted yet", never "neutral". A wave has no

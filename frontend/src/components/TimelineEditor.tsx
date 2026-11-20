@@ -3,7 +3,7 @@
 import { useState } from "react";
 import styles from "@/app/page.module.css";
 import type { VideoTimestamp } from "@/lib/api";
-import { formatClock, parseClock } from "@/lib/waves";
+import { formatClock, parseClock } from "@/lib/clock";
 
 const MAX_TIMESTAMPS = 300;
 

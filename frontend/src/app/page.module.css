@@ -1320,12 +1320,6 @@ button.waveChip {
   list-style: none;
 }
 
-.waveStripDeleteItem {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
 @media (max-width: 800px) {
   .waveStrip:not(.waveStripEditing) {
     flex-wrap: wrap;

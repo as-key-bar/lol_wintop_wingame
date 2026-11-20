@@ -81,7 +81,7 @@ cd frontend && npm run lint && npm test && npm run build
 | メソッド・パス | 内容 |
 |---|---|
 | `GET /api/v1/champions?q=` | チャンピオン検索 |
-| `GET /api/v1/matchups/{p}/{o}?includeCandidates=&voterToken=` | 保存済み動画（UV の多い順）と、YouTube の検索結果を一緒に返す（最大8件）。**保存済みがあっても検索する**（暫定。仕様書 DEC-019）。検索結果は72時間キャッシュ。`includeCandidates` は互換のために残るが、効果は同じ |
+| `GET /api/v1/matchups/{p}/{o}?voterToken=` | 保存済み動画（UV の多い順）と、YouTube の検索結果を一緒に返す（最大8件）。**保存済みがあっても検索する**（暫定。仕様書 DEC-019）。検索結果は72時間キャッシュ。以前の `includeCandidates` と「YouTube候補を検索」ボタンは、常に検索する方針になって意味が無くなったため削除（2026-11-20） |
 | `POST /api/v1/matchups/{p}/{o}/upvote` | UV の付与と取り消し。UV された YouTube 候補は `matchup_videos` に保存される。保存時にビルド情報が未登録なら、概要欄から自動で取得する |
 | `GET /api/v1/game-assets` | ルーン、シャード、スペル、スタートアイテムのカタログ |
 | `POST /api/v1/matchups/{p}/{o}/analyze` | 動画ページから概要欄を取得してビルド情報を抽出する。保存済みのビルド情報があれば YouTube にアクセスせずそれを返す（`refresh: true` で再取得。`manual_verified` は上書きしない） |
