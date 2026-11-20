@@ -225,26 +225,26 @@ export async function readErrorMessage(
   }
 }
 
-// PUT with the admin token. Throws an Error whose message is shown to the user.
-export async function putAsAdmin<T>(
+// PUT as the logged-in editor (the session cookie is sent). Throws an Error whose message is
+// shown to the user.
+export async function putAsEditor<T>(
   url: URL,
   body: unknown,
-  adminToken: string,
   failureMessage: string,
 ): Promise<T> {
   const response = await fetch(url, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${adminToken}`,
-    },
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   if (response.status === 401) {
-    throw new Error("管理者トークンが正しくありません。");
+    throw new Error("ログインの有効期限が切れました。もう一度ログインしてください。");
   }
   if (response.status === 403) {
-    throw new Error("サーバーで管理者機能が無効です（ADMIN_TOKEN が未設定です）。");
+    throw new Error(
+      await readErrorMessage(response, "編集には、管理者の承認が必要です。"),
+    );
   }
   if (response.status === 429) {
     throw new Error("操作が多すぎます。少し待ってからやり直してください。");

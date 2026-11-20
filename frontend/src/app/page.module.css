@@ -1100,14 +1100,64 @@
   }
 }
 
-.adminTokenInput {
-  width: min(320px, 100%);
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
+.accountMenu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.accountButton {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid #355b86;
+  background: rgba(88, 166, 255, 0.12);
   color: inherit;
   font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.accountRole {
+  color: #aab8c8;
+  font-size: 0.8rem;
+}
+
+.accountRolePending {
+  color: #f6c873;
+}
+
+.accountHint {
+  color: #8190a3;
+  font-size: 0.75rem;
+}
+
+.adminHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.userList {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.userRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #344256;
+  border-radius: 10px;
+  background: #0e1622;
 }
 
 .creditSection {

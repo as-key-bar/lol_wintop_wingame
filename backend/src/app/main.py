@@ -1,15 +1,16 @@
-import hmac
 import logging
 import os
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.auth import require_editor
+from app.auth_routes import router as auth_router
 from app.champions import Champion, search_champions
 from app.database import compute_voter_hash, get_engine
 from app.matchups import (
@@ -41,11 +42,13 @@ APP_VERSION = os.getenv("APP_VERSION", "dev")
 APP_COMMIT = os.getenv("APP_COMMIT", "unknown")
 
 app = FastAPI(title="wintop-wingame API", version=APP_VERSION)
+app.include_router(auth_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
     allow_methods=["GET", "POST", "PUT"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_headers=["Content-Type"],
+    allow_credentials=True,
 )
 
 
@@ -79,30 +82,6 @@ async def unknown_champion_handler(request, error):
             }
         },
     )
-
-
-def require_admin_token(authorization: str | None = Header(default=None)) -> None:
-    expected = os.getenv("ADMIN_TOKEN", "").strip()
-    if not expected:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "code": "admin_disabled",
-                "message": "管理者機能は無効です。サーバーに ADMIN_TOKEN が設定されていません。",
-            },
-        )
-    scheme, _, supplied = (authorization or "").partition(" ")
-    if scheme.lower() != "bearer" or not hmac.compare_digest(
-        supplied.strip().encode("utf-8"), expected.encode("utf-8")
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail={
-                "code": "invalid_admin_token",
-                "message": "管理者トークンが正しくありません。",
-            },
-            headers={"WWW-Authenticate": "Bearer"},
-        )
 
 
 class ChampionListResponse(BaseModel):
@@ -285,7 +264,7 @@ def post_analyze_matchup_video(
 @app.put(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/metadata",
     response_model=VideoMetadataAnalysis,
-    dependencies=[Depends(rate_limit("metadata-write", 10, 60)), Depends(require_admin_token)],
+    dependencies=[Depends(rate_limit("metadata-write", 10, 60)), Depends(require_editor)],
 )
 def put_matchup_video_metadata(
     playerChampionId: str,
@@ -321,7 +300,7 @@ def put_matchup_video_metadata(
 @app.put(
     "/api/v1/matchups/{playerChampionId}/{opponentChampionId}/waves",
     response_model=VideoMetadataAnalysis,
-    dependencies=[Depends(rate_limit("waves-write", 60, 60)), Depends(require_admin_token)],
+    dependencies=[Depends(rate_limit("waves-write", 60, 60)), Depends(require_editor)],
 )
 def put_matchup_video_waves(
     playerChampionId: str,

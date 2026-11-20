@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { WaveNote } from "@/lib/api";
 import { WaveStrip } from "./WaveStrip";
 
@@ -14,13 +14,9 @@ function renderStrip(
   props: Partial<React.ComponentProps<typeof WaveStrip>> = {},
 ) {
   const onSave = vi.fn().mockResolvedValue(undefined);
-  render(<WaveStrip waves={[]} onSave={onSave} saving={false} {...props} />);
+  render(<WaveStrip waves={[]} onSave={onSave} saving={false} canEdit {...props} />);
   return { onSave };
 }
-
-afterEach(() => {
-  window.sessionStorage.clear();
-});
 
 describe("WaveStrip (normal view)", () => {
   it("shows the title first and each wave as 'number：state' in a single row", () => {
@@ -49,6 +45,15 @@ describe("WaveStrip (normal view)", () => {
   });
 });
 
+describe("WaveStrip (who may edit)", () => {
+  it("shows the waves but no edit button to people who may not edit", () => {
+    renderStrip({ waves: sample, canEdit: false });
+
+    expect(screen.getByText("1：プッシュ")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "編集" })).not.toBeInTheDocument();
+  });
+});
+
 describe("WaveStrip (edit view)", () => {
   async function openEditor(props: Partial<React.ComponentProps<typeof WaveStrip>> = {}) {
     const result = renderStrip(props);
@@ -58,8 +63,7 @@ describe("WaveStrip (edit view)", () => {
 
   const editRegion = () => screen.getByRole("region", { name: "ウェーブ管理（編集）" });
 
-  async function saveWithToken() {
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
+  async function save() {
     await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
   }
 
@@ -108,15 +112,14 @@ describe("WaveStrip (edit view)", () => {
     await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
     expect(screen.getByText(/ウェーブ 2：まだ記録していません/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /^プル/ }));
-    await saveWithToken();
+    await save();
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
-    const [waves, token] = onSave.mock.calls[0];
-    expect(waves).toEqual([
+    expect(onSave.mock.calls[0]).toHaveLength(1);
+    expect(onSave.mock.calls[0][0]).toEqual([
       { waveNumber: 1, state: "push" },
       { waveNumber: 2, state: "pull" },
     ]);
-    expect(token).toBe("secret");
   });
 
   it("records several waves with the keyboard shortcuts", async () => {
@@ -130,14 +133,6 @@ describe("WaveStrip (edit view)", () => {
       .getAllByRole("listitem")
       .map((item) => item.textContent?.replace("×", ""));
     expect(labels).toEqual(["1：プッシュ", "2：プル", "3：不明"]);
-  });
-
-  it("ignores shortcut keys typed into a text field", async () => {
-    await openEditor();
-
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "1");
-
-    expect(within(editRegion()).queryAllByRole("listitem")).toHaveLength(0);
   });
 
   it("continues after the existing waves", async () => {
@@ -167,7 +162,7 @@ describe("WaveStrip (edit view)", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "ウェーブ3を削除" }));
     await userEvent.click(screen.getByRole("button", { name: /^プッシュ/ }));
-    await saveWithToken();
+    await save();
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const [waves] = onSave.mock.calls[0];
@@ -185,31 +180,24 @@ describe("WaveStrip (edit view)", () => {
     expect(screen.queryByPlaceholderText("メモ")).not.toBeInTheDocument();
   });
 
-  it("requires the admin token and shows the server's error without closing", async () => {
+  it("shows the server's error without closing, so nothing typed is lost", async () => {
     const { onSave } = await openEditor({ waves: sample });
+    onSave.mockRejectedValueOnce(new Error("編集には、管理者の承認が必要です。"));
 
-    await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("管理者トークンを入力してください。");
-    expect(onSave).not.toHaveBeenCalled();
+    await save();
 
-    onSave.mockRejectedValueOnce(new Error("管理者トークンが正しくありません。"));
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "wrong");
-    await userEvent.click(screen.getByRole("button", { name: "ウェーブを保存" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("管理者トークンが正しくありません。");
+    expect(await screen.findByRole("alert")).toHaveTextContent("編集には、管理者の承認が必要です。");
     expect(editRegion()).toBeInTheDocument();
-    expect(window.sessionStorage.getItem("wintop_admin_token")).toBeNull();
   });
 
-  it("returns to the strip after a successful save and remembers the token for the tab", async () => {
+  it("returns to the strip after a successful save", async () => {
     await openEditor({ waves: sample });
 
-    await saveWithToken();
+    await save();
 
     await waitFor(() =>
       expect(screen.getByRole("region", { name: "ウェーブ管理" })).toBeInTheDocument(),
     );
-    expect(window.sessionStorage.getItem("wintop_admin_token")).toBe("secret");
   });
 
   it("discards unsaved changes when closed", async () => {

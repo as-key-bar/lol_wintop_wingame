@@ -187,14 +187,13 @@ Data Dragonを出典とし、チャンピオンの識別には表示名ではな
 
 リクエスト: `{ "video": <MatchupVideo>, "metadata": <metadata> }`。手動編集したビルド情報を `manual_verified` として保存する。
 
-- **管理者限定**: `Authorization: Bearer <ADMIN_TOKEN>` が必要。サーバーに環境変数 `ADMIN_TOKEN` が未設定なら `403`（`admin_disabled`）、トークンが違えば `401`（`invalid_admin_token`）。
-- 画面の手動編集では、トークンを入力して保存する（トークンはそのブラウザセッションのみ保持）。
+- **編集者限定**（Google ログイン）: ログイン機能が未設定なら `403`（`login_disabled`）、未ログインなら `401`（`login_required`）、承認前なら `403`（`not_approved`）、別のサイトからの操作なら `403`（`bad_origin`）。詳しくは「認証」の節。
 
 ### `PUT /api/v1/matchups/{p}/{o}/waves`
 
 リクエスト: `{ "video": <MatchupVideo>, "waves": WaveNote[] }`。ウェーブのプッシュ・プル**だけ**を保存する。ルーン・スペル・スタートアイテム・タイムラインには触れない。送った `waves` の一覧で、保存済みの一覧を**置き換える**（一覧から外したウェーブは削除される）。
 
-- **管理者限定**: `PUT /metadata` と同じ（`Authorization: Bearer <ADMIN_TOKEN>`。未設定なら `403`、違えば `401`）。
+- **編集者限定**: `PUT /metadata` と同じ。
 - 同じウェーブ番号を2つ含めると `400`。値が範囲外なら `422`。
 - 保存済みでない動画は、サーバーの検索が提示した動画に限り、行として作る（それ以外は `400`、`invalid_waves`）。
 - レスポンスは、保存後の `metadata` 全体（ビルドの値を含む）。
@@ -206,3 +205,22 @@ Data Dragonを出典とし、チャンピオンの識別には表示名ではな
 - YouTube Data APIによる自動検索の実現範囲、クォータ、必要な利用者向け表示（TASK-005）。
 - 動画リンクの定期的な有効性確認の頻度・運用方法。
 - UV の投票者の識別方法（IP が変わると別の投票者になる。TBD-005）。
+
+## 認証（Google ログイン。2026-11-20、DEC-025）
+
+閲覧と UV はログイン不要。ビルドとウェーブの保存（`PUT /metadata`、`PUT /waves`）と、ユーザー管理だけがログインを要する。管理者トークン（`ADMIN_TOKEN`）は廃止した。
+
+| メソッド・パス | 内容 |
+|---|---|
+| `GET /api/v1/auth/google/login?returnTo=/path` | Google の認可画面へリダイレクトする（認可コード + PKCE、`state`、`nonce`）。`returnTo` は、このサイト内のパスだけ |
+| `GET /api/v1/auth/google/callback` | Google からの戻り。コードを Google のトークンエンドポイントで交換し（サーバー間の TLS 通信）、ID トークンの `iss`・`aud`・`exp`・`nonce`・`email_verified` を確認して、セッションを発行する。失敗時は `?loginError=failed` を付けて元のページへ戻す |
+| `GET /api/v1/auth/me` | `{ loginEnabled, user: { displayName, email, role } \| null }`。画面が、編集ボタンの出し分けに使う |
+| `POST /api/v1/auth/logout` | セッションを破棄する |
+| `GET /api/v1/admin/users` | ユーザー一覧（管理者のみ） |
+| `PUT /api/v1/admin/users/{id}/role` | `{ "role": "editor" \| "pending" }`（管理者のみ。自分自身と管理者は変更不可） |
+
+- **役割**：`admin`（環境変数 `ADMIN_EMAILS` に載ったアドレス。ログインのたびに再確認する）、`editor`（管理者が承認）、`pending`（ログインしただけ。保存はできない）。
+- **セッション**：ランダムな値を Cookie（`HttpOnly`、`Secure`、`SameSite=Lax`、14日）に入れる。DB には**そのハッシュだけ**を保存する。役割はリクエストごとに DB から読むため、承認の取り消しは次の操作から効く。
+- **CSRF**：`SameSite=Lax` に加えて、`Origin` ヘッダが `PUBLIC_BASE_URL` と違えば `403`。
+- **保存する個人情報**：Google の `sub`、メールアドレス、表示名だけ。パスワードやアクセストークンは持たない。
+- 環境変数：`PUBLIC_BASE_URL`、`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、`ADMIN_EMAILS`（`deploy/env.example`）。

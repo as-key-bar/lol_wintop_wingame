@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import styles from "@/app/page.module.css";
-import { readStoredAdminToken, storeAdminToken } from "@/lib/adminToken";
 import type { WaveNote, WaveState } from "@/lib/api";
 import {
   MAX_WAVES,
@@ -15,10 +14,12 @@ import {
 
 type WaveStripProps = {
   waves: WaveNote[];
-  // Saves the wave list on its own, with the admin token. Rejects with an Error whose message is
-  // shown to the user. The strip never saves the build (runes, spells, items, timeline).
-  onSave: (waves: WaveNote[], adminToken: string) => Promise<void>;
+  // Saves the wave list on its own, as the logged-in editor. Rejects with an Error whose message
+  // is shown to the user. The strip never saves the build (runes, spells, items, timeline).
+  onSave: (waves: WaveNote[]) => Promise<void>;
   saving: boolean;
+  // Only approved editors see the edit button; everyone else just views the waves.
+  canEdit: boolean;
 };
 
 const BUTTONS: { state: WaveState; key: string; className: string }[] = [
@@ -33,11 +34,10 @@ const BUTTONS: { state: WaveState; key: string; className: string }[] = [
 // wave is recorded with one button (or key) and the next wave becomes the target. The waves are
 // just an ordered list of push/pull states: they have no video time and never touch the player.
 // A recorded wave can only be deleted, not edited: to correct one, delete it and record it again.
-export function WaveStrip({ waves, onSave, saving }: WaveStripProps) {
+export function WaveStrip({ waves, onSave, saving, canEdit }: WaveStripProps) {
   const [editing, setEditing] = useState(false);
   const [draftWaves, setDraftWaves] = useState<WaveNote[]>(waves);
   const [targetWave, setTargetWave] = useState(1);
-  const [token, setToken] = useState(readStoredAdminToken);
   const [error, setError] = useState("");
 
   const waveNumber = Math.min(targetWave, MAX_WAVES);
@@ -68,15 +68,9 @@ export function WaveStrip({ waves, onSave, saving }: WaveStripProps) {
   }
 
   async function save() {
-    const trimmed = token.trim();
-    if (!trimmed) {
-      setError("管理者トークンを入力してください。");
-      return;
-    }
     setError("");
     try {
-      await onSave(draftWaves, trimmed);
-      storeAdminToken(trimmed);
+      await onSave(draftWaves);
       close();
     } catch (failure) {
       setError(
@@ -130,9 +124,11 @@ export function WaveStrip({ waves, onSave, saving }: WaveStripProps) {
             <span className={styles.emptyInlineNote}>未入力</span>
           )}
         </div>
-        <button type="button" className={styles.loadCandidatesButton} onClick={open}>
-          編集
-        </button>
+        {canEdit && (
+          <button type="button" className={styles.loadCandidatesButton} onClick={open}>
+            編集
+          </button>
+        )}
       </section>
     );
   }
@@ -205,16 +201,6 @@ export function WaveStrip({ waves, onSave, saving }: WaveStripProps) {
       )}
 
       <div className={styles.waveStripRow}>
-        <label htmlFor="wave-admin-token">管理者トークン</label>
-        <input
-          id="wave-admin-token"
-          type="password"
-          className={styles.adminTokenInput}
-          value={token}
-          autoComplete="off"
-          placeholder="ADMIN_TOKEN"
-          onChange={(event) => setToken(event.target.value)}
-        />
         <button
           type="button"
           className={styles.upvoteButtonActive}

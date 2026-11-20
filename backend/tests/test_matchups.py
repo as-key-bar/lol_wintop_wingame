@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from app import database, matchups, video_analysis, youtube_search
 from app.champions import load_catalog
 from conftest import api_get as get, api_post as post, api_put as put
+from login_helpers import enable_login, login_cookies
 
 
 @pytest.fixture(autouse=True)
@@ -746,7 +747,7 @@ def test_extract_description_with_embedded_semicolons_and_compact_format() -> No
 def test_game_assets_and_manual_metadata_persistence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    cookies = login_cookies(monkeypatch)
     assets_response = get("/api/v1/game-assets")
     assert assets_response.status_code == 200
     assets_data = assets_response.json()
@@ -794,7 +795,7 @@ def test_game_assets_and_manual_metadata_persistence(
     put_response = put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         {"video": video_payload, "metadata": metadata_payload},
-        headers={"Authorization": "Bearer correct-token"},
+        cookies=cookies,
     )
     assert put_response.status_code == 200
     assert put_response.json()["analysisStatus"] == "manual_verified"
@@ -863,10 +864,11 @@ METADATA_PAYLOAD = {
 }
 
 
-def test_put_metadata_is_disabled_without_server_admin_token(
+def test_put_metadata_is_disabled_when_login_is_not_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
+    for name in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "PUBLIC_BASE_URL"):
+        monkeypatch.delenv(name, raising=False)
 
     response = put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
@@ -874,38 +876,38 @@ def test_put_metadata_is_disabled_without_server_admin_token(
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"]["code"] == "admin_disabled"
+    assert response.json()["detail"]["code"] == "login_disabled"
     assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
 
 
-def test_put_metadata_rejects_missing_or_wrong_admin_token(
+def test_put_metadata_needs_a_login_and_rejects_a_bogus_session(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    enable_login(monkeypatch)
     body = {"video": VIDEO_PAYLOAD, "metadata": METADATA_PAYLOAD}
 
     missing = put("/api/v1/matchups/Aatrox/Darius/metadata", body)
-    wrong = put(
+    bogus = put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         body,
-        headers={"Authorization": "Bearer wrong-token"},
+        cookies={"wintop_session": "not-a-real-session"},
     )
 
     assert missing.status_code == 401
-    assert wrong.status_code == 401
-    assert wrong.json()["detail"]["code"] == "invalid_admin_token"
+    assert bogus.status_code == 401
+    assert missing.json()["detail"]["code"] == "login_required"
     assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
 
 
-def test_put_metadata_accepts_valid_admin_token(
+def test_put_metadata_accepts_a_logged_in_admin(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    cookies = login_cookies(monkeypatch)
 
     response = put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         {"video": VIDEO_PAYLOAD, "metadata": METADATA_PAYLOAD},
-        headers={"Authorization": "Bearer correct-token"},
+        cookies=cookies,
     )
 
     assert response.status_code == 200
@@ -967,13 +969,13 @@ def test_analyze_skips_youtube_when_metadata_already_saved(
 def test_analyze_never_overwrites_manually_verified_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    cookies = login_cookies(monkeypatch)
     calls = _count_fetches(monkeypatch)
     video = {**VIDEO_PAYLOAD, "id": "yt-aatrox-vs-darius-manual1"}
     put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         {"video": video, "metadata": METADATA_PAYLOAD},
-        headers={"Authorization": "Bearer correct-token"},
+        cookies=cookies,
     )
 
     response = post(
@@ -1454,7 +1456,6 @@ def test_new_rows_record_when_the_data_was_fetched(monkeypatch: pytest.MonkeyPat
 
 # --- manual input: every extracted field is editable; waves are manual only, with their own save ---
 
-AUTH = {"Authorization": "Bearer correct-token"}
 
 
 def _manual_payload(**overrides) -> dict:
@@ -1474,22 +1475,22 @@ def _video(video_id: str) -> dict:
 
 
 def _save_build(monkeypatch, video_id: str, metadata: dict):
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    cookies = login_cookies(monkeypatch)
     video = _video(video_id)
     return video, put(
         "/api/v1/matchups/Aatrox/Darius/metadata",
         {"video": video, "metadata": metadata},
-        headers=AUTH,
+        cookies=cookies,
     )
 
 
-def _save_waves(monkeypatch, video: dict, waves: list, headers=AUTH):
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+def _save_waves(monkeypatch, video: dict, waves: list):
+    cookies = login_cookies(monkeypatch)
     _offer_as_candidates(monkeypatch, video)
     return put(
         "/api/v1/matchups/Aatrox/Darius/waves",
         {"video": video, "waves": waves},
-        headers=headers,
+        cookies=cookies,
     )
 
 
@@ -1502,25 +1503,24 @@ def _stored_metadata(video: dict) -> dict:
     return next(i for i in items if i["videoUrl"] == video["videoUrl"])["metadata"]
 
 
-def test_waves_have_their_own_save_that_needs_the_admin_token(
+def test_waves_have_their_own_save_that_needs_an_approved_login(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     video = _video("wavesauth01")
     body = {"video": video, "waves": [_wave(1)]}
+    url = "/api/v1/matchups/Aatrox/Darius/waves"
 
-    monkeypatch.delenv("ADMIN_TOKEN", raising=False)
-    assert put("/api/v1/matchups/Aatrox/Darius/waves", body).status_code == 403
+    for name in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "PUBLIC_BASE_URL"):
+        monkeypatch.delenv(name, raising=False)
+    assert put(url, body).status_code == 403
 
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
-    assert put("/api/v1/matchups/Aatrox/Darius/waves", body).status_code == 401
-    assert (
-        put(
-            "/api/v1/matchups/Aatrox/Darius/waves",
-            body,
-            headers={"Authorization": "Bearer wrong-token"},
-        ).status_code
-        == 401
-    )
+    enable_login(monkeypatch)
+    assert put(url, body).status_code == 401
+
+    pending = login_cookies(monkeypatch, email="friend@example.com")
+    denied = put(url, body, cookies=pending)
+    assert denied.status_code == 403
+    assert denied.json()["detail"]["code"] == "not_approved"
     assert get("/api/v1/matchups/Aatrox/Darius").json()["items"] == []
 
 
@@ -1602,13 +1602,13 @@ def test_wave_save_rejects_invalid_values(monkeypatch: pytest.MonkeyPatch) -> No
 def test_wave_save_only_accepts_videos_the_server_offered_or_has_saved(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("ADMIN_TOKEN", "correct-token")
+    cookies = login_cookies(monkeypatch)
     stranger = _video("neveroffer02")
 
     response = put(
         "/api/v1/matchups/Aatrox/Darius/waves",
         {"video": stranger, "waves": [_wave(1)]},
-        headers=AUTH,
+        cookies=cookies,
     )
 
     assert response.status_code == 400

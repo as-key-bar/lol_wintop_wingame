@@ -6,7 +6,7 @@ League of Legendsのトップレーン向けマッチアップ攻略ツールで
 
 - Phase 1（チャンピオン選択、対面リプレイ、UV、MySQL永続化）：ほぼ完了
 - Phase 2A（概要欄の解析、ルーン9枠・スペル・タイムスタンプの表示と手動編集）：実装済み
-- Phase 2B/3（手動入力ベース）：全項目の手動入力・修正、ウェーブのプッシュ・プルのワンボタン入力は実装済み（本番にデプロイ済み。本番では ADMIN_TOKEN が空のため、保存は HTTPS 化の後）。映像の画像認識は行いません（YouTube の書面許可が要るため）
+- Phase 2B/3（手動入力ベース）：全項目の手動入力・修正、ウェーブのプッシュ・プルのワンボタン入力は実装済み（本番にデプロイ済み。保存は Google ログインした編集者だけ（HTTPS 化と同時に有効化））。映像の画像認識は行いません（YouTube の書面許可が要るため）
 
 公開前に必要な作業（YouTube Data API キーの発行、Riotポリシーの確認、AWSデプロイの実施）と次のステップは、[開発引継ぎメモ](./docs/HANDOFF.md)と[仕様書の第8章](./LoLタイマン勝てるのツール.md)にまとめています。
 
@@ -123,6 +123,6 @@ Phase 2Aで追加したAPIは次のとおりです。
 |---|---|
 | `GET /api/v1/game-assets` | ルーン、シャード、スペル、スタートアイテムのカタログ（`backend/src/app/data/game_assets.json`。更新は `python3 scripts/update_game_assets_catalog.py`） |
 | `POST /api/v1/matchups/{playerChampionId}/{opponentChampionId}/analyze` | 動画の概要欄を取得し、ルーン・スペル・タイムスタンプを抽出する。DB保存済みの動画なら結果を保存し、保存済みのビルド情報があればYouTubeにアクセスせず返す（`refresh: true` で再取得） |
-| `PUT /api/v1/matchups/{playerChampionId}/{opponentChampionId}/metadata` | 手動で編集したビルド情報を保存する。環境変数 `ADMIN_TOKEN` を設定し、`Authorization: Bearer <ADMIN_TOKEN>` を付けたときだけ有効（未設定なら403） |
+| `PUT /api/v1/matchups/{playerChampionId}/{opponentChampionId}/metadata` | 手動で編集したビルド情報を保存する。Google でログインして、管理者が承認した編集者だけが使える（未ログインは401、承認前は403。`GOOGLE_CLIENT_ID` などが未設定なら403） |
 
 環境変数 `YOUTUBE_API_KEY`（任意）を設定すると、候補検索にYouTube Data API v3を使います。未設定の場合はYouTubeの検索ページのHTMLを解析します。

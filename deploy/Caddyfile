@@ -1,5 +1,6 @@
 # One origin for browser traffic: /api/* goes to FastAPI, everything else to Next.js.
-# {$SITE_ADDRESS} is a domain name (automatic HTTPS) or ":80" for HTTP only.
+# {$SITE_ADDRESS} is the domain name (automatic HTTPS, plain HTTP is redirected to HTTPS) or ":80"
+# for HTTP only (before the domain exists, and for local checks).
 {$SITE_ADDRESS::80} {
 	encode zstd gzip
 
@@ -20,6 +21,14 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		X-Frame-Options DENY
 		-Server
 	}
+}
+
+# www.<domain> redirects to the main domain. Set WWW_HOST to the www host (it needs its own DNS A
+# record, and gets its own certificate). Without a domain it stays on a name that never resolves,
+# and the block is ignored.
+{$WWW_HOST:www.invalid} {
+	redir https://{$SITE_ADDRESS:localhost}{uri} permanent
 }

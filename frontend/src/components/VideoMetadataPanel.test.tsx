@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { GameAssetsCatalog, VideoMetadataAnalysis } from "@/lib/api";
 import { VideoMetadataPanel } from "./VideoMetadataPanel";
 
@@ -73,16 +73,13 @@ function renderPanel(
       savingManual={false}
       onAnalyzeDescription={onAnalyzeDescription}
       onSaveManualMetadata={onSaveManualMetadata}
+      canEdit
       onJumpToTimestamp={vi.fn()}
       {...props}
     />,
   );
   return { onAnalyzeDescription, onSaveManualMetadata };
 }
-
-afterEach(() => {
-  window.sessionStorage.clear();
-});
 
 describe("VideoMetadataPanel analyze button", () => {
   it("offers the first extraction when nothing is analyzed", async () => {
@@ -136,53 +133,43 @@ describe("VideoMetadataPanel manual save", () => {
     await userEvent.click(screen.getByRole("button", { name: "ビルドを手動編集" }));
   }
 
-  it("requires an admin token before saving", async () => {
+  it("saves as the logged-in editor, with no token to type", async () => {
     const { onSaveManualMetadata } = renderPanel();
     await openEditor();
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "このビルド情報をDBに保存" }),
-    );
-
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "管理者トークンを入力してください。",
-    );
-    expect(onSaveManualMetadata).not.toHaveBeenCalled();
-  });
-
-  it("sends the entered token and remembers it for the session", async () => {
-    const { onSaveManualMetadata } = renderPanel();
-    await openEditor();
-
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
     await userEvent.click(
       screen.getByRole("button", { name: "このビルド情報をDBに保存" }),
     );
 
     await waitFor(() => expect(onSaveManualMetadata).toHaveBeenCalledTimes(1));
-    const [saved, token] = onSaveManualMetadata.mock.calls[0];
-    expect(token).toBe("secret");
+    const [saved] = onSaveManualMetadata.mock.calls[0];
     expect(saved.analysisStatus).toBe("manual_verified");
-    expect(window.sessionStorage.getItem("wintop_admin_token")).toBe("secret");
+    expect(onSaveManualMetadata.mock.calls[0]).toHaveLength(1);
+  });
+
+  it("hides the edit button from people who may not edit", () => {
+    renderPanel({ canEdit: false });
+
+    expect(
+      screen.queryByRole("button", { name: "ビルドを手動編集" }),
+    ).not.toBeInTheDocument();
   });
 
   it("shows the server error and keeps the editor open when saving fails", async () => {
     const { onSaveManualMetadata } = renderPanel();
     onSaveManualMetadata.mockRejectedValueOnce(
-      new Error("管理者トークンが正しくありません。"),
+      new Error("編集には、管理者の承認が必要です。"),
     );
     await openEditor();
 
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "wrong");
     await userEvent.click(
       screen.getByRole("button", { name: "このビルド情報をDBに保存" }),
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "管理者トークンが正しくありません。",
+      "編集には、管理者の承認が必要です。",
     );
-    expect(window.sessionStorage.getItem("wintop_admin_token")).toBeNull();
-    expect(screen.getByPlaceholderText("ADMIN_TOKEN")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "編集を閉じる" })).toBeInTheDocument();
   });
 });
 
@@ -208,7 +195,6 @@ describe("VideoMetadataPanel build editing (independent of waves)", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "ビルドを手動編集" }));
     await userEvent.click(screen.getByRole("button", { name: "1:00 を削除" }));
-    await userEvent.type(screen.getByPlaceholderText("ADMIN_TOKEN"), "secret");
     await userEvent.click(screen.getByRole("button", { name: "このビルド情報をDBに保存" }));
 
     await waitFor(() => expect(onSaveManualMetadata).toHaveBeenCalledTimes(1));

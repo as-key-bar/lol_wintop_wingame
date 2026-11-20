@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useState } from "react";
 import styles from "@/app/page.module.css";
 import { TimelineEditor } from "@/components/TimelineEditor";
-import { readStoredAdminToken, storeAdminToken } from "@/lib/adminToken";
 import {
   type GameAssetsCatalog,
   type RuneSelection,
@@ -19,10 +18,9 @@ type VideoMetadataPanelProps = {
   analyzing: boolean;
   savingManual: boolean;
   onAnalyzeDescription: (refresh: boolean) => void;
-  onSaveManualMetadata: (
-    updated: BuildSavePayload,
-    adminToken: string,
-  ) => Promise<void>;
+  onSaveManualMetadata: (updated: BuildSavePayload) => Promise<void>;
+  // Only approved editors see the edit controls; everyone else just views the build.
+  canEdit: boolean;
   onJumpToTimestamp: (seconds: number) => void;
   // Reads the current playback position, when the player is controllable (timeline editor).
   playerReady?: boolean;
@@ -38,6 +36,7 @@ export function VideoMetadataPanel({
   savingManual,
   onAnalyzeDescription,
   onSaveManualMetadata,
+  canEdit,
   onJumpToTimestamp,
   playerReady = false,
   currentTime = () => null,
@@ -58,7 +57,6 @@ export function VideoMetadataPanel({
   const [draftSpells, setDraftSpells] = useState<string[]>([]);
   const [draftItems, setDraftItems] = useState<string[]>([]);
   const [draftTimestamps, setDraftTimestamps] = useState<VideoTimestamp[]>([]);
-  const [adminToken, setAdminToken] = useState(readStoredAdminToken);
   const [saveError, setSaveError] = useState("");
 
   function openEditor() {
@@ -166,24 +164,15 @@ export function VideoMetadataPanel({
         }
       : null;
 
-    const token = adminToken.trim();
-    if (!token) {
-      setSaveError("管理者トークンを入力してください。");
-      return;
-    }
     setSaveError("");
     try {
-      await onSaveManualMetadata(
-        {
-          analysisStatus: "manual_verified",
-          runes: runesPayload,
-          summonerSpells: draftSpells,
-          startingItems: draftItems,
-          timestamps: draftTimestamps,
-        },
-        token,
-      );
-      storeAdminToken(token);
+      await onSaveManualMetadata({
+        analysisStatus: "manual_verified",
+        runes: runesPayload,
+        summonerSpells: draftSpells,
+        startingItems: draftItems,
+        timestamps: draftTimestamps,
+      });
       closeEditor();
     } catch (saveFailure) {
       setSaveError(
@@ -265,13 +254,15 @@ export function VideoMetadataPanel({
           >
             {analyzing ? "概要欄を解析中..." : analyzeLabel}
           </button>
-          <button
-            type="button"
-            className={styles.loadCandidatesButton}
-            onClick={() => (editing ? closeEditor() : openEditor())}
-          >
-            {editing ? "編集を閉じる" : "ビルドを手動編集"}
-          </button>
+          {(canEdit || editing) && (
+            <button
+              type="button"
+              className={styles.loadCandidatesButton}
+              onClick={() => (editing ? closeEditor() : openEditor())}
+            >
+              {editing ? "編集を閉じる" : "ビルドを手動編集"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -492,22 +483,11 @@ export function VideoMetadataPanel({
             currentTime={playerReady ? currentTime : undefined}
           />
 
-          <div className={styles.editorSection}>
-            <h4>管理者トークン</h4>
-            <input
-              type="password"
-              className={styles.adminTokenInput}
-              value={adminToken}
-              autoComplete="off"
-              placeholder="ADMIN_TOKEN"
-              onChange={(event) => setAdminToken(event.target.value)}
-            />
-            {saveError && (
-              <p className={styles.error} role="alert">
-                {saveError}
-              </p>
-            )}
-          </div>
+          {saveError && (
+            <p className={styles.error} role="alert">
+              {saveError}
+            </p>
+          )}
 
           <div className={styles.editorFooter}>
             <button

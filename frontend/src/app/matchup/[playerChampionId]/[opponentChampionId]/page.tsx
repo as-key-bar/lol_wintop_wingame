@@ -13,7 +13,7 @@ import {
   getOrCreateVoterToken,
   getYouTubeEmbedUrl,
   matchupApiUrl,
-  putAsAdmin,
+  putAsEditor,
   readErrorMessage,
   type Champion,
   type ChampionResponse,
@@ -24,6 +24,8 @@ import {
   type VideoMetadataAnalysis,
   type WaveNote,
 } from "@/lib/api";
+import { AccountMenu } from "@/components/AccountMenu";
+import { useAuth } from "@/lib/auth";
 import { useYouTubePlayer } from "@/lib/youtubePlayer";
 import styles from "@/app/page.module.css";
 
@@ -67,6 +69,7 @@ function MatchupContent() {
   const [error, setError] = useState("");
   const [playerFrame, setPlayerFrame] = useState<HTMLIFrameElement | null>(null);
   const [buildEditing, setBuildEditing] = useState(false);
+  const auth = useAuth();
   // The player API is only loaded while the build editor is open (its timeline reads the
   // playback position), so ordinary viewing never pulls in the extra script.
   const player = useYouTubePlayer(buildEditing ? playerFrame : null);
@@ -206,17 +209,15 @@ function MatchupContent() {
   async function handleSaveManualMetadata(
     video: MatchupVideo,
     metadata: BuildSavePayload,
-    adminToken: string,
   ) {
     if (!playerChampionId || !opponentChampionId || savingMetadata) {
       return;
     }
     setSavingMetadata(true);
     try {
-      const savedMetadata = await putAsAdmin<VideoMetadataAnalysis>(
+      const savedMetadata = await putAsEditor<VideoMetadataAnalysis>(
         matchupApiUrl(playerChampionId, opponentChampionId, "/metadata"),
         { video, metadata },
-        adminToken,
         "ビルド情報の保存に失敗しました。",
       );
       setMatchupVideos((previous) =>
@@ -234,17 +235,15 @@ function MatchupContent() {
   async function handleSaveWaves(
     video: MatchupVideo,
     waves: WaveNote[],
-    adminToken: string,
   ) {
     if (!playerChampionId || !opponentChampionId || savingWaves) {
       return;
     }
     setSavingWaves(true);
     try {
-      const saved = await putAsAdmin<VideoMetadataAnalysis>(
+      const saved = await putAsEditor<VideoMetadataAnalysis>(
         matchupApiUrl(playerChampionId, opponentChampionId, "/waves"),
         { video, waves },
-        adminToken,
         "ウェーブ情報の保存に失敗しました。",
       );
       setMatchupVideos((previous) =>
@@ -356,6 +355,7 @@ function MatchupContent() {
         </h1>
 
         <div className={styles.matchupBarRight}>
+          <AccountMenu auth={auth} />
           {!loading && !error && (
             <span className={styles.videoCount}>
               全 {matchupVideos.length} 件
@@ -550,9 +550,8 @@ function MatchupContent() {
                 key={activeVideo.id}
                 waves={activeVideo.metadata?.waves ?? []}
                 saving={savingWaves}
-                onSave={(waves, adminToken) =>
-                  handleSaveWaves(activeVideo, waves, adminToken)
-                }
+                canEdit={auth.canEdit}
+                onSave={(waves) => handleSaveWaves(activeVideo, waves)}
               />
 
               <VideoMetadataPanel
@@ -563,8 +562,9 @@ function MatchupContent() {
                 onAnalyzeDescription={(refresh) =>
                   handleAnalyzeVideo(activeVideo, refresh)
                 }
-                onSaveManualMetadata={(updated, adminToken) =>
-                  handleSaveManualMetadata(activeVideo, updated, adminToken)
+                canEdit={auth.canEdit}
+                onSaveManualMetadata={(updated) =>
+                  handleSaveManualMetadata(activeVideo, updated)
                 }
                 playerReady={player.ready}
                 currentTime={player.currentTime}

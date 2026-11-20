@@ -60,7 +60,7 @@ cd frontend && npm run lint && npm test && npm run build
 |---|---|---|
 | `DATABASE_URL` | いいえ（`.env.example` の値が既定） | SQLAlchemy の接続先。つながらない場合、閲覧は `matchups.json` で継続し、UV とビルド保存は 503 を返す |
 | `NEXT_PUBLIC_API_BASE_URL` | いいえ（未設定なら `http://localhost:8000`） | フロントエンドから呼ぶ API の URL。**空文字なら同一オリジン**（本番の Caddy 構成）。ビルド時にブラウザ向けの値として埋め込まれる |
-| `ADMIN_TOKEN` | いいえ | 設定すると `PUT /metadata`（ビルド情報の手動保存）が使える。未設定なら 403 で無効 |
+| `PUBLIC_BASE_URL` / `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `ADMIN_EMAILS` | いいえ | Google ログイン（DEC-025）。3つが揃うとログインが有効になり、保存（`PUT /metadata`、`PUT /waves`）が編集者に開く。`ADMIN_EMAILS` は常に管理者のアドレス（カンマ区切り）。未設定なら保存は 403 で無効 |
 | `YOUTUBE_API_KEY` | いいえ（本番では事実上必須） | 設定すると候補検索と概要欄の取得に YouTube Data API v3 を使う。未設定なら YouTube の HTML を解析する |
 | `CORS_ALLOW_ORIGINS` | いいえ | カンマ区切りで許可するオリジン。既定は localhost:3000。同一オリジンの本番構成では不要 |
 
@@ -73,7 +73,7 @@ cd frontend && npm run lint && npm test && npm run build
   - ファーストビューに収まる 16:9 の埋め込みプレーヤー。
   - UV ボタン（押すたびに付与と取り消しが切り替わる）。
   - ビルドパネル（[`VideoMetadataPanel.tsx`](../frontend/src/components/VideoMetadataPanel.tsx)）：ルーン9枠の全表示、サモナースペル、スタートアイテム、タイムライン。タイムスタンプを押すとその秒数から再生。キル関連のイベントだけに絞り込み可能。
-  - 「概要欄から自動取得」（取得済みなら「再取得」）ボタンと「ビルドを手動編集」ボタン。手動保存には管理者トークンの入力が必要。
+  - 「概要欄から自動取得」（取得済みなら「再取得」）ボタンと「ビルドを手動編集」ボタン。保存できるのは、Google でログインして管理者が承認した編集者だけ（編集ボタンも、その人にだけ出る）。
 - `/credit`：サービス概要、データの出典、動画の扱い。フッターからリンク。
 
 ### API（[`main.py`](../backend/src/app/main.py)）
@@ -85,7 +85,7 @@ cd frontend && npm run lint && npm test && npm run build
 | `POST /api/v1/matchups/{p}/{o}/upvote` | UV の付与と取り消し。UV された YouTube 候補は `matchup_videos` に保存される。保存時にビルド情報が未登録なら、概要欄から自動で取得する |
 | `GET /api/v1/game-assets` | ルーン、シャード、スペル、スタートアイテムのカタログ |
 | `POST /api/v1/matchups/{p}/{o}/analyze` | 動画ページから概要欄を取得してビルド情報を抽出する。保存済みのビルド情報があれば YouTube にアクセスせずそれを返す（`refresh: true` で再取得。`manual_verified` は上書きしない） |
-| `PUT /api/v1/matchups/{p}/{o}/metadata` | 手動で編集したビルド情報を `manual_verified` として保存する。`Authorization: Bearer <ADMIN_TOKEN>` が必要 |
+| `PUT /api/v1/matchups/{p}/{o}/metadata` | 手動で編集したビルド情報を `manual_verified` として保存する。編集者のログインが必要（`docs/phase1-data-contract.md` の「認証」） |
 
 ### データ
 - [`champions.json`](../backend/src/app/data/champions.json)：Data Dragon 16.22.1 から生成（`scripts/update_champion_catalog.py`）。
@@ -114,7 +114,7 @@ Challenger Replays の概要欄には次の2つの書式があります。
 2. **YouTube Data API のキーが未発行（TASK-005）**：コードは対応済み（候補検索と概要欄の取得が `YOUTUBE_API_KEY` で Data API を使う）。キー未設定だと HTML 解析にフォールバックするが、クラウドの IP では YouTube にブロックされる可能性が高い。規約の確認も残る。
 3. **Riot のポリシー確認が未了（TASK-006）**：Riot Developer Portal への登録と、現行の利用規約・必須表示の確認。
 4. **Free Plan は 6 か月で終わる**：クレジット消化、または 6 か月でアカウントが閉鎖される。続け方の決定が必要（TBD-003）。
-5. **HTTP のままでは `ADMIN_TOKEN` が平文で流れる**：ドメインを取得して HTTPS にするまでは、`ADMIN_TOKEN` を空にして手動編集を無効にしておく。
+5. **保存は HTTPS が前提**：ログインの Cookie が平文で流れないよう、保存を有効にするのは、独自ドメイン（`wintop-wingame.com`）で HTTPS にしてから（`PUBLIC_BASE_URL` が `https://` のときだけ、Cookie に `Secure` を付ける）。
 6. **フロントエンドのテストは一部のみ**：`lib/api.ts` と `VideoMetadataPanel` のみ。ページ全体（`page.tsx`）のテストはない。
 7. **バックアップは同一サーバー内のみ**：`deploy/backup.sh` は `backups/` に保存する。S3 への退避は未実装。
 
@@ -139,6 +139,6 @@ Challenger Replays の概要欄には次の2つの書式があります。
 **バックアップ（自動スキップ。Phase 2 終了宣言時に削除する）**：動画を自動で動かす機能（記録後に25秒先へ送る、編集を開くと40秒へ移す、現在時間の設定時に移す）は、手触りが良くないため削除した。復帰できるよう、削除前の状態を git のブランチ `backup/auto-skip-wave-editor` とタグ `backup/auto-skip-wave-editor-v0.2.5`（コミット `224fadc`）に残してある。復帰は `git diff HEAD backup/auto-skip-wave-editor -- frontend` で差分を見て、必要なファイルを `git checkout backup/auto-skip-wave-editor -- <ファイル>` で戻す。**Phase 2 の終了を宣言したら、`git branch -D backup/auto-skip-wave-editor` と `git tag -d backup/auto-skip-wave-editor-v0.2.5` で削除する**（リモートにプッシュした場合は、リモートからも削除する）。
 
 未着手：
-- **編集者の権限**（アドミン、アドミンが許可したスーパーユーザー。TASK-016、TBD-008）。**HTTPS 化とドメイン取得の後に設計**する。それまで、本番では管理者トークンが無効のため、**本番では手動入力を保存できない**。
+- **編集者の権限**（アドミン、アドミンが許可したスーパーユーザー。TASK-016、TBD-008）：Google ログインで実装済み（DEC-025）。管理者は `ADMIN_EMAILS`、他の人は `/admin` で承認する。本番での有効化は、HTTPS 化と Google の OAuth クライアントの設定の後。
 - 主導権、ソロキルの入力。
 - 入力画面の使い勝手の調整（運用しながら）。

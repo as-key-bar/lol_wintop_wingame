@@ -73,6 +73,32 @@ class MatchupVideoMetadataRecord(Base):
     updated_at: Mapped[str] = mapped_column(String(64), nullable=False)
 
 
+class UserRecord(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    google_sub: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    # admin and editor may save; pending has logged in but is not approved yet.
+    role: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class LoginSessionRecord(Base):
+    __tablename__ = "login_sessions"
+    __table_args__ = (
+        Index("idx_session_user", "user_id"),
+        Index("idx_session_expires", "expires_at"),
+    )
+
+    # Only the hash of the cookie value is stored, so a database leak cannot be replayed.
+    token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
 _engine: Engine | None = None
 
 
